@@ -1,0 +1,86 @@
+I. Quản lý User (CRUD + chức năng)
+🔹 CRUD
+Tạo tài khoản (Register)
+Đăng nhập / đăng xuất
+Cập nhật thông tin cá nhân
+Xóa tài khoản
+🔹 Chức năng
+🔐 Xác thực 2 lớp (2FA)
+🧾 Xem lịch sử tham gia sự kiện
+❤️ Lưu sự kiện yêu thích
+🎯 Nhận gợi ý sự kiện (AI)
+🔔 Nhận thông báo real-time
+🎯 II. Quản lý Sự kiện (Event)
+🔹 CRUD
+Tạo sự kiện
+Sửa sự kiện
+Xóa sự kiện
+Xem danh sách sự kiện
+🔹 Chức năng
+🔍 Tìm kiếm & lọc sự kiện
+📍 Hiển thị trên bản đồ
+⏳ Countdown mở bán
+📶 Hiển thị vé còn lại real-time
+🧭 Chỉ đường đến địa điểm
+🌐 Đa ngôn ngữ
+📅 Thêm vào Google Calendr
+🎯 IIIa. Quản lý Vé (Ticket)
+🔹 CRUD
+Tạo loại vé (VIP, thường...)
+Cập nhật giá vé
+Xóa vé
+Xem danh sách vé
+🔹 Chức năng
+💺 Chọn chỗ ngồi (Seat Map)
+🎟️ Đặt vé (giữ chỗ tạm thời)
+🎟️ Vé nhóm (Group ticket)
+📩 Sinh vé điện tử (QR code)
+🔐 Chống gian lận vé
+🔁 Chuyển nhượng vé
+🎯 IV. Quản lý Đơn hàng (Order)
+🔹 CRUD
+Tạo đơn hàng
+Cập nhật trạng thái
+Hủy đơn
+Xem đơn hàng
+🔹 Chức năng
+💳 Thanh toán online
+🎁 Áp dụng mã giảm giá
+📊 Theo dõi trạng thái đơn
+🔄 Hoàn tiền (refund)
+🧾 Xuất hóa đơn điện tử
+🎯 V. Check-in & xác thực
+🔹 CRUD
+Lưu log check-in
+Xem lịch sử check-in
+🔹 Chức năng
+🔐 Check-in bằng QR code
+📡 Check-in offline
+⚡ Scan QR real-time
+🎯 VI. Đánh giá & tương tác
+🔹 CRUD
+Thêm đánh giá
+Sửa đánh giá
+Xóa đánh giá
+Xem đánh giá
+🔹 Chức năng
+⭐ Rating sự kiện
+💬 Bình luận
+👥 Mời bạn bè
+📢 Chia sẻ sự kiện
+🎯 VII. Marketing & hệ thống
+🔹 CRUD
+Quản lý mã giảm giá
+Quản lý banner quảng cáo
+🔹 Chức năng
+📢 Gửi email hàng loạt
+🎯 Quản lý chiến dịch marketing
+🧠 Phân tích hành vi người dùng
+⚡ Hệ thống hàng đợi khi mở bán vé hot
+🤖 Chatbot hỗ trợ
+🎯 VIII. Admin Dashboard
+🔹 CRUD (gián tiếp qua các module)
+🔹 Chức năng
+📊 Dashboard thống kê
+📈 Biểu đồ doanh thu
+📉 Báo cáo theo thời gian

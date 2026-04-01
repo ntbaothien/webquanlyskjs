@@ -1,0 +1,105 @@
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import useAuthStore from './store/authStore';
+
+// Auth pages
+import LoginPage from './pages/auth/LoginPage';
+import RegisterPage from './pages/auth/RegisterPage';
+
+// Public / Attendee pages
+import EventListPage from './pages/events/EventListPage';
+import EventDetailPage from './pages/events/EventDetailPage';
+import MyTicketsPage from './pages/tickets/MyTicketsPage';
+import BookingPage from './pages/tickets/BookingPage';
+import TicketQRPage from './pages/tickets/TicketQRPage';
+import CheckInPage from './pages/tickets/CheckInPage';
+
+// Organizer pages
+import EventFormPage from './pages/orders/OrderListPage';
+import MyEventsPage from './pages/admin/EventManagePage';
+
+// Admin pages
+import DashboardPage from './pages/admin/DashboardPage';
+import UserManagePage from './pages/admin/UserManagePage';
+import AdminEventManagePage from './pages/admin/AdminEventManagePage';
+import ReportsPage from './pages/admin/ReportsPage';
+import CouponManagePage from './pages/admin/CouponManagePage';
+
+// Profile pages
+import ProfilePage from './pages/profile/ProfilePage';
+import SavedEventsPage from './pages/profile/SavedEventsPage';
+
+// Error pages
+import NotFoundPage from './pages/errors/NotFoundPage';
+
+// Common components
+import Footer from './components/common/Footer';
+import ToastContainer from './components/common/Toast';
+
+// ---- Guards ----
+const PrivateRoute = ({ children }) => {
+  const user = useAuthStore((s) => s.user);
+  return user ? children : <Navigate to="/login" replace />;
+};
+
+const OrganizerRoute = ({ children }) => {
+  const user = useAuthStore((s) => s.user);
+  if (!user) return <Navigate to="/login" replace />;
+  if (user.role !== 'ORGANIZER' && user.role !== 'ADMIN') return <Navigate to="/" replace />;
+  return children;
+};
+
+const AdminRoute = ({ children }) => {
+  const user = useAuthStore((s) => s.user);
+  if (!user) return <Navigate to="/login" replace />;
+  if (user.role !== 'ADMIN') return <Navigate to="/" replace />;
+  return children;
+};
+
+const PublicRoute = ({ children }) => {
+  const user = useAuthStore((s) => s.user);
+  return !user ? children : <Navigate to="/" replace />;
+};
+
+export default function App() {
+  return (
+    <BrowserRouter>
+      <ToastContainer />
+      <Routes>
+        {/* Public Auth */}
+        <Route path="/login" element={<PublicRoute><LoginPage /></PublicRoute>} />
+        <Route path="/register" element={<PublicRoute><RegisterPage /></PublicRoute>} />
+
+        {/* Public Event Pages */}
+        <Route path="/" element={<EventListPage />} />
+        <Route path="/events/:id" element={<EventDetailPage />} />
+
+        {/* Attendee-only */}
+        <Route path="/my-registrations" element={<PrivateRoute><MyTicketsPage /></PrivateRoute>} />
+        <Route path="/my-tickets" element={<PrivateRoute><MyTicketsPage /></PrivateRoute>} />
+        <Route path="/events/:id/book" element={<PrivateRoute><BookingPage /></PrivateRoute>} />
+        <Route path="/tickets/:code" element={<PrivateRoute><TicketQRPage /></PrivateRoute>} />
+
+        {/* Organizer + Admin */}
+        <Route path="/organizer/my-events" element={<OrganizerRoute><MyEventsPage /></OrganizerRoute>} />
+        <Route path="/organizer/events/create" element={<OrganizerRoute><EventFormPage /></OrganizerRoute>} />
+        <Route path="/organizer/events/:id/edit" element={<OrganizerRoute><EventFormPage /></OrganizerRoute>} />
+        <Route path="/organizer/check-in" element={<OrganizerRoute><CheckInPage /></OrganizerRoute>} />
+
+        {/* Admin only */}
+        <Route path="/admin" element={<AdminRoute><DashboardPage /></AdminRoute>} />
+        <Route path="/admin/users" element={<AdminRoute><UserManagePage /></AdminRoute>} />
+        <Route path="/admin/events" element={<AdminRoute><AdminEventManagePage /></AdminRoute>} />
+        <Route path="/admin/reports" element={<AdminRoute><ReportsPage /></AdminRoute>} />
+        <Route path="/admin/coupons" element={<AdminRoute><CouponManagePage /></AdminRoute>} />
+
+        {/* Profile */}
+        <Route path="/profile" element={<PrivateRoute><ProfilePage /></PrivateRoute>} />
+        <Route path="/profile/saved" element={<PrivateRoute><SavedEventsPage /></PrivateRoute>} />
+
+        {/* 404 — catch all */}
+        <Route path="*" element={<NotFoundPage />} />
+      </Routes>
+      <Footer />
+    </BrowserRouter>
+  );
+}
