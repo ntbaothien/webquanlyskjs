@@ -208,17 +208,19 @@ export default function EventListPage() {
                 const minPrice = getMinPrice(event);
                 const eventImage = getImageUrl(event.bannerImagePath);
                 const countdown = getCountdown(event.startDate);
+                const isPast = new Date(event.endDate || event.startDate) < new Date();
                 // Show tag category info on card
                 const firstTag = event.tags?.[0];
                 const firstTagInfo = firstTag ? getCategoryInfo(firstTag) : null;
                 return (
-                  <div key={event._id} className="event-card"
+                  <div key={event._id} className={`event-card${isPast ? ' event-card-past' : ''}`}
                     onClick={() => navigate(`/events/${event._id}`)}>
-                    {isHot(event) && <span className="hot-badge">🔥 HOT</span>}
+                    {!isPast && isHot(event) && <span className="hot-badge">🔥 HOT</span>}
+                    {isPast && <span className="hot-badge" style={{ background: 'rgba(107,114,128,0.85)' }}>🏁 Đã kết thúc</span>}
                     <div className="event-img"
                       style={{
                         backgroundImage: eventImage
-                          ? `linear-gradient(rgba(8,8,20,0.15), rgba(8,8,20,0.35)), url(${eventImage})`
+                          ? `linear-gradient(rgba(8,8,20,${isPast ? '0.5' : '0.15'}), rgba(8,8,20,${isPast ? '0.6' : '0.35'})), url(${eventImage})`
                           : 'linear-gradient(135deg, #6c63ff 0%, #3f3d9e 100%)'
                       }}>
                       <span className="event-date-badge">
@@ -226,7 +228,7 @@ export default function EventListPage() {
                           ? new Date(event.startDate).toLocaleDateString('vi-VN', { day: '2-digit', month: 'short' })
                           : '—'}
                       </span>
-                      {countdown && <span className="event-countdown">{countdown}</span>}
+                      {!isPast && countdown && <span className="event-countdown">{countdown}</span>}
                     </div>
                     <div className="event-body">
                       <h4 className="event-title">{event.title}</h4>

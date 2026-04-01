@@ -29,8 +29,15 @@ export default function BookingPage() {
     if (!user) { navigate('/login'); return; }
     axiosInstance.get(`/events/${eventId}`)
       .then(({ data }) => {
-        setEvent(data.event);
-        setZones(data.event.seatZones || []);
+        const ev = data.event;
+        // Check if event has ended
+        const eventEnd = ev.endDate || ev.startDate;
+        if (eventEnd && new Date(eventEnd) < new Date()) {
+          navigate(`/events/${eventId}`, { state: { error: 'Sự kiện đã kết thúc, không thể đặt vé' } });
+          return;
+        }
+        setEvent(ev);
+        setZones(ev.seatZones || []);
       })
       .catch(() => navigate('/'))
       .finally(() => setLoading(false));

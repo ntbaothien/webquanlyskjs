@@ -161,7 +161,7 @@ export default function EventDetailPage() {
     : 0;
 
   const bannerUrl = getImageUrl(event.bannerImagePath);
-  const eventPast = new Date(event.startDate) < new Date();
+  const eventPast = new Date(event.endDate || event.startDate) < new Date();
   const avgRating = reviews.length > 0
     ? (reviews.reduce((s, r) => s + r.rating, 0) / reviews.length).toFixed(1)
     : null;
@@ -250,7 +250,7 @@ export default function EventDetailPage() {
 
                 {message && <div className={`msg-box ${msgType}`}>{message}</div>}
 
-                {event.status === 'PUBLISHED' && user?.role === 'ATTENDEE' && (
+                {event.status === 'PUBLISHED' && user?.role === 'ATTENDEE' && !eventPast && (
                   <>
                     {!isPaid && !alreadyRegistered && (
                       <button className="btn-register" onClick={handleRegister} disabled={spotsLeft === 0}>
@@ -271,7 +271,13 @@ export default function EventDetailPage() {
                   </>
                 )}
 
-                {!user && event.status === 'PUBLISHED' && (
+                {event.status === 'PUBLISHED' && eventPast && (
+                  <button className="btn-register" disabled style={{ opacity: 0.5 }}>
+                    🏁 Sự kiện đã kết thúc
+                  </button>
+                )}
+
+                {!user && event.status === 'PUBLISHED' && !eventPast && (
                   <button className="btn-register" onClick={() => navigate('/login')}>
                     🔐 Đăng nhập để {isPaid ? 'mua vé' : 'đăng ký'}
                   </button>

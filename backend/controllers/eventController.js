@@ -54,7 +54,15 @@ export const getEvents = async (req, res) => {
  */
 export const getTrending = async (req, res) => {
   try {
-    const events = await Event.find({ status: 'PUBLISHED' })
+    const now = new Date();
+    const events = await Event.find({
+      status: 'PUBLISHED',
+      $or: [
+        { endDate: { $gte: now } },
+        { endDate: null },
+        { startDate: { $gte: now } }
+      ]
+    })
       .sort({ currentAttendees: -1 })
       .limit(10)
       .lean();
@@ -69,7 +77,16 @@ export const getTrending = async (req, res) => {
  */
 export const getFeatured = async (req, res) => {
   try {
-    const events = await Event.find({ status: 'PUBLISHED', isFeatured: true })
+    const now = new Date();
+    const events = await Event.find({
+      status: 'PUBLISHED',
+      isFeatured: true,
+      $or: [
+        { endDate: { $gte: now } },
+        { endDate: null },
+        { startDate: { $gte: now } }
+      ]
+    })
       .sort({ createdAt: -1 })
       .limit(5)
       .lean();
@@ -147,12 +164,24 @@ export const getSimilar = async (req, res) => {
     const event = await Event.findById(req.params.id).lean();
     if (!event) return res.json([]);
 
+    const now = new Date();
     const similar = await Event.find({
       _id: { $ne: event._id },
       status: 'PUBLISHED',
-      $or: [
-        { tags: { $in: event.tags || [] } },
-        { category: event.category }
+      $and: [
+        {
+          $or: [
+            { endDate: { $gte: now } },
+            { endDate: null },
+            { startDate: { $gte: now } }
+          ]
+        },
+        {
+          $or: [
+            { tags: { $in: event.tags || [] } },
+            { category: event.category }
+          ]
+        }
       ]
     }).sort({ currentAttendees: -1 }).limit(4).lean();
 
@@ -218,6 +247,13 @@ export const registerEvent = async (req, res) => {
 
     if (!event) return res.status(404).json({ error: 'Sự kiện không tồn tại' });
     if (event.status !== 'PUBLISHED') return res.status(400).json({ error: 'Sự kiện chưa mở đăng ký' });
+
+    // Check if event has ended
+    const eventEnd = event.endDate || event.startDate;
+    if (eventEnd && new Date(eventEnd) < new Date()) {
+      return res.status(400).json({ error: 'Sự kiện đã kết thúc, không thể đăng ký' });
+    }
+
     if (!event.free) return res.status(400).json({ error: 'Sự kiện này cần mua vé' });
 
     // Check capacity
@@ -295,6 +331,12 @@ export const bookEvent = async (req, res) => {
     const event = await Event.findById(eventId);
     if (!event) return res.status(404).json({ error: 'Sự kiện không tồn tại' });
     if (event.status !== 'PUBLISHED') return res.status(400).json({ error: 'Sự kiện chưa mở bán vé' });
+
+    // Check if event has ended
+    const eventEnd = event.endDate || event.startDate;
+    if (eventEnd && new Date(eventEnd) < new Date()) {
+      return res.status(400).json({ error: 'Sự kiện đã kết thúc, không thể đặt vé' });
+    }
 
     // Find zone
     const zone = event.seatZones.id(zoneId);

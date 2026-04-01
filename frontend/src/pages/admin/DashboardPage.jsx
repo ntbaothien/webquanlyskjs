@@ -248,7 +248,7 @@ export default function DashboardPage() {
             </thead>
             <tbody>
               {stats.top5Events.map((e, i) => (
-                <tr key={e.id}>
+                <tr key={e._id}>
                   <td style={{ fontWeight: 700, color: 'var(--admin-primary)' }}>{i + 1}</td>
                   <td><strong style={{ color: '#fff' }}>{e.title}</strong></td>
                   <td>{e.location}</td>
@@ -283,7 +283,7 @@ export default function DashboardPage() {
             </thead>
             <tbody>
               {report.recentEvents.map(e => (
-                <tr key={e.id}>
+                <tr key={e._id}>
                   <td><strong style={{ color: '#fff' }}>{e.title}</strong></td>
                   <td>{e.organizerName}</td>
                   <td>{e.createdAt ? new Date(e.createdAt).toLocaleDateString('vi-VN') : '—'}</td>
