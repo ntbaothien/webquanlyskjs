@@ -5,7 +5,8 @@ import {
   getMyTickets, getTicketByCode, checkIn,
   getNotifications, markRead, markAllRead,
   getMyRegistrations, getMyBookings,
-  cancelRegistration, cancelBooking
+  cancelRegistration, cancelBooking,
+  sendTicketByEmail
 } from '../controllers/ticketController.js';
 
 const router = Router();
@@ -19,6 +20,7 @@ router.delete('/bookings/:id', auth, cancelBooking);
 // Tickets
 router.get('/my-tickets', auth, getMyTickets);
 router.get('/tickets/:code', auth, getTicketByCode);
+router.post('/tickets/:code/send-email', auth, sendTicketByEmail);
 router.post('/tickets/:code/check-in', auth, role('ORGANIZER', 'ADMIN'), checkIn);
 
 // Notifications

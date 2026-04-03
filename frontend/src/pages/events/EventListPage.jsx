@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import axiosInstance from '../../utils/axiosInstance';
 import { getImageUrl } from '../../utils/getImageUrl';
 import Navbar from '../../components/common/Navbar';
@@ -10,6 +11,7 @@ import { SkeletonList } from '../../components/common/Skeleton';
 import './Events.css';
 
 export default function EventListPage() {
+  const { t } = useTranslation();
   const [events, setEvents] = useState([]);
   const [trending, setTrending] = useState([]);
   const [featured, setFeatured] = useState([]);
@@ -121,22 +123,22 @@ export default function EventListPage() {
         {/* Quick Time Filters */}
         <div className="quick-filters">
           <button className={`qf-btn ${timeFilter === '' ? 'active' : ''}`}
-            onClick={() => updateFilter('time', '')}>📋 Tất cả</button>
+            onClick={() => updateFilter('time', '')}>📋 {t('events.allTime', 'Tất cả')}</button>
           <button className={`qf-btn ${timeFilter === 'today' ? 'active' : ''}`}
-            onClick={() => updateFilter('time', 'today')}>📅 Hôm nay</button>
+            onClick={() => updateFilter('time', 'today')}>📅 {t('events.today', 'Hôm nay')}</button>
           <button className={`qf-btn ${timeFilter === 'weekend' ? 'active' : ''}`}
-            onClick={() => updateFilter('time', 'weekend')}>🌙 Cuối tuần</button>
+            onClick={() => updateFilter('time', 'weekend')}>🌙 {t('events.weekend', 'Cuối tuần')}</button>
           <button className={`qf-btn ${timeFilter === 'month' ? 'active' : ''}`}
-            onClick={() => updateFilter('time', 'month')}>📆 Tháng này</button>
+            onClick={() => updateFilter('time', 'month')}>📆 {t('events.thisMonth', 'Tháng này')}</button>
         </div>
 
         {/* Search & Filter Bar */}
         <div className="filter-bar">
-          <input type="text" placeholder="🔍 Tìm kiếm sự kiện..."
+          <input type="text" placeholder={`🔍 ${t('events.search')}`}
             defaultValue={keyword}
             onKeyDown={e => { if (e.key === 'Enter') updateFilter('keyword', e.target.value); }} />
           <select value={location} onChange={e => updateFilter('location', e.target.value)}>
-            <option value="">📍 Tất cả địa điểm</option>
+            <option value="">📍 {t('events.allLocations', 'Tất cả địa điểm')}</option>
             {locations.map(l => <option key={l} value={l}>{l}</option>)}
           </select>
         </div>
@@ -154,7 +156,7 @@ export default function EventListPage() {
               tagCategoryInfo ? (
                 <span className="af-chip af-chip-cat" onClick={() => updateFilter('tag', '')}
                   style={{ background: tagCategoryInfo.gradient }}>
-                  {tagCategoryInfo.icon} {tagCategoryInfo.label} ×
+                  {tagCategoryInfo.icon} {t(`categories.${tagCategoryInfo.key}`, tagCategoryInfo.label)} ×
                 </span>
               ) : (
                 <span className="af-chip" onClick={() => updateFilter('tag', '')}>
@@ -183,22 +185,22 @@ export default function EventListPage() {
         <div className="section-header">
           <h3 className="section-title">
             {tag && tagCategoryInfo
-              ? `${tagCategoryInfo.icon} ${tagCategoryInfo.label}`
+              ? `${tagCategoryInfo.icon} ${t(`categories.${tagCategoryInfo.key}`, tagCategoryInfo.label)}`
               : tag
                 ? `🏷️ ${tag}`
-                : '🎫 Tất cả sự kiện'}
+                : `🎫 ${t('events.allEvents', 'Tất cả sự kiện')}`}
           </h3>
-          {!loading && <span className="section-count">{totalElements} sự kiện</span>}
+          {!loading && <span className="section-count">{totalElements} {t('events.eventsCount', 'sự kiện')}</span>}
         </div>
 
         {loading ? <SkeletonList count={6} /> : (
           events.length === 0 ? (
             <div className="empty-state">
               <span className="empty-emoji">🎭</span>
-              <p>Không tìm thấy sự kiện nào</p>
+              <p>{t('events.noEvents')}</p>
               {hasActiveFilters && (
                 <button className="empty-clear" onClick={clearAllFilters}>
-                  Xóa bộ lọc
+                  {t('events.clearFilters', 'Xóa bộ lọc')}
                 </button>
               )}
             </div>
@@ -238,11 +240,11 @@ export default function EventListPage() {
                       </div>
                       <div className="event-footer">
                         <span className="event-price">
-                          {minPrice === null ? '🆓 Miễn phí' : `💳 Từ ${minPrice.toLocaleString('vi-VN')}đ`}
+                          {minPrice === null ? `🆓 ${t('events.free', 'Miễn phí')}` : `💳 ${t('events.from', 'Từ')} ${minPrice.toLocaleString('vi-VN')}đ`}
                         </span>
                         {firstTagInfo ? (
                           <span className="event-cat-badge" style={{ background: firstTagInfo.gradient }}>
-                            {firstTagInfo.icon} {firstTagInfo.label}
+                            {firstTagInfo.icon} {t(`categories.${firstTagInfo.key}`, firstTagInfo.label)}
                           </span>
                         ) : firstTag ? (
                           <span className="event-tag">{firstTag}</span>

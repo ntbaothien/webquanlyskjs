@@ -26,7 +26,9 @@ axiosInstance.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
+      // Clear both token and the persisted user state to prevent infinite loops
       localStorage.removeItem('accessToken');
+      localStorage.removeItem('eventhub-auth');
       window.location.href = '/login';
     }
     return Promise.reject(error);
