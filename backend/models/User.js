@@ -17,7 +17,9 @@ const userSchema = new mongoose.Schema({
   twoFA: {
     enabled: { type: Boolean, default: false },
     secret: { type: String, default: '' }
-  }
+  },
+  resetPasswordToken: { type: String, default: null },
+  resetPasswordExpires: { type: Date, default: null }
 }, { timestamps: true });
 
 // Do NOT return password in JSON

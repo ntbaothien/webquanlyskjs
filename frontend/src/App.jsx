@@ -4,6 +4,8 @@ import useAuthStore from './store/authStore';
 // Auth pages
 import LoginPage from './pages/auth/LoginPage';
 import RegisterPage from './pages/auth/RegisterPage';
+import ForgotPasswordPage from './pages/auth/ForgotPasswordPage';
+import ResetPasswordPage from './pages/auth/ResetPasswordPage';
 
 // Public / Attendee pages
 import EventListPage from './pages/events/EventListPage';
@@ -70,6 +72,8 @@ export default function App() {
         {/* Public Auth */}
         <Route path="/login" element={<PublicRoute><LoginPage /></PublicRoute>} />
         <Route path="/register" element={<PublicRoute><RegisterPage /></PublicRoute>} />
+        <Route path="/forgot-password" element={<PublicRoute><ForgotPasswordPage /></PublicRoute>} />
+        <Route path="/reset-password/:token" element={<PublicRoute><ResetPasswordPage /></PublicRoute>} />
 
         {/* Public Event Pages */}
         <Route path="/" element={<EventListPage />} />
