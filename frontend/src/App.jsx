@@ -34,6 +34,7 @@ import NotFoundPage from './pages/errors/NotFoundPage';
 // Common components
 import Footer from './components/common/Footer';
 import ToastContainer from './components/common/Toast';
+import ChatBox from './components/common/ChatBox';
 
 // ---- Guards ----
 const PrivateRoute = ({ children }) => {
@@ -64,6 +65,7 @@ export default function App() {
   return (
     <BrowserRouter>
       <ToastContainer />
+      <ChatBox />
       <Routes>
         {/* Public Auth */}
         <Route path="/login" element={<PublicRoute><LoginPage /></PublicRoute>} />

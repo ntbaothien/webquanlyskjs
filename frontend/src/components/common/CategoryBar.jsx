@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import './CategoryBar.css';
 
 // Keys are lowercase tag values matching what's stored in the DB tags array
@@ -24,6 +25,7 @@ export function getCategoryInfo(tagKey) {
 }
 
 export default function CategoryBar({ selected, onSelect }) {
+  const { t } = useTranslation();
   return (
     <div className="category-bar-wrapper">
       <div className="category-bar">
@@ -31,7 +33,7 @@ export default function CategoryBar({ selected, onSelect }) {
           className={`category-chip ${!selected ? 'active' : ''}`}
           onClick={() => onSelect(null)}>
           <span className="cat-icon">🌐</span>
-          <span className="cat-label">Tất cả</span>
+          <span className="cat-label">{t('events.all', 'Tất cả')}</span>
         </button>
         {CATEGORIES.map(c => (
           <button
@@ -40,7 +42,7 @@ export default function CategoryBar({ selected, onSelect }) {
             onClick={() => onSelect(c.key)}
             style={selected?.toLowerCase() === c.key ? { background: c.gradient } : {}}>
             <span className="cat-icon">{c.icon}</span>
-            <span className="cat-label">{c.label}</span>
+            <span className="cat-label">{t(`categories.${c.key}`, c.label)}</span>
           </button>
         ))}
       </div>

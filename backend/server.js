@@ -20,6 +20,9 @@ import profileRoutes from './routes/profileRoutes.js';
 import ticketRoutes from './routes/ticketRoutes.js';
 import userRoutes from './routes/userRoutes.js';
 import couponRoutes from './routes/couponRoutes.js';
+import chatRoutes from './routes/chatRoutes.js';
+import ChatMessage from './models/ChatMessage.js';
+import { getBotReply } from './utils/aiBot.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -57,6 +60,7 @@ app.use('/api/profile', profileRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api', ticketRoutes);
 app.use('/api/coupons', couponRoutes);
+app.use('/api/chat', chatRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => res.json({ status: 'ok', time: new Date() }));
@@ -68,6 +72,48 @@ io.on('connection', (socket) => {
   socket.on('join', (userId) => {
     socket.join(`user:${userId}`);
     console.log(`👤 User ${userId} joined room`);
+  });
+
+  socket.on('chat:join', ({ userId, userName }) => {
+    socket.join('chat:support');
+    console.log(`💬 ${userName} joined support chat`);
+  });
+
+  socket.on('chat:message', async ({ userId, userName, userRole, message }) => {
+    try {
+      // Save user message
+      const userMsg = await ChatMessage.create({
+        roomId: 'support',
+        senderId: userId,
+        senderName: userName,
+        senderRole: userRole || 'ATTENDEE',
+        message,
+        isBot: false
+      });
+
+      // Broadcast user message to all in room
+      io.to('chat:support').emit('chat:message', userMsg.toObject());
+
+      // Generate AI bot reply after short delay
+      setTimeout(async () => {
+        try {
+          const replyText = await getBotReply(message);
+          const botMsg = await ChatMessage.create({
+            roomId: 'support',
+            senderId: 'bot',
+            senderName: 'EventHub Bot',
+            senderRole: 'BOT',
+            message: replyText,
+            isBot: true
+          });
+          io.to('chat:support').emit('chat:message', botMsg.toObject());
+        } catch (err) {
+          console.error('Bot reply error:', err);
+        }
+      }, 1200);
+    } catch (err) {
+      console.error('Chat message error:', err);
+    }
   });
 
   socket.on('disconnect', () => {

@@ -4,6 +4,7 @@ import Booking from '../models/Booking.js';
 import Notification from '../models/Notification.js';
 import User from '../models/User.js';
 import Event from '../models/Event.js';
+import { sendTicketEmail } from '../utils/mailer.js';
 
 /**
  * GET /api/my-registrations — free event registrations for current user
@@ -167,6 +168,26 @@ export const getTicketByCode = async (req, res) => {
     res.json(ticket);
   } catch (error) {
     res.status(500).json({ error: error.message });
+  }
+};
+
+/**
+ * POST /api/tickets/:code/send-email
+ */
+export const sendTicketByEmail = async (req, res) => {
+  try {
+    const ticket = await Ticket.findOne({ ticketCode: req.params.code }).lean();
+    if (!ticket) return res.status(404).json({ error: 'Vé không tồn tại' });
+
+    if (ticket.userId.toString() !== req.user._id.toString() && req.user.role !== 'ORGANIZER' && req.user.role !== 'ADMIN') {
+      return res.status(403).json({ error: 'Không có quyền gửi vé này' });
+    }
+
+    const info = await sendTicketEmail(req.user.email, ticket, req.user);
+    res.json({ message: 'Đã gửi vé vào email thành công', infoId: info.messageId });
+  } catch (error) {
+    console.error('Send email error:', error);
+    res.status(500).json({ error: 'Lỗi gửi email: ' + error.message });
   }
 };
 
