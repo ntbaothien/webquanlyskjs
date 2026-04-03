@@ -23,6 +23,11 @@ import couponRoutes from './routes/couponRoutes.js';
 import chatRoutes from './routes/chatRoutes.js';
 import ChatMessage from './models/ChatMessage.js';
 import { getBotReply } from './utils/aiBot.js';
+import resourceRoutes from './routes/resourceRoutes.js';
+import forumRoutes from './routes/forumRoutes.js';
+import notificationRoutes from './routes/notificationRoutes.js';
+import pollRoutes from './routes/pollRoutes.js';
+import { initReminderWorker } from './utils/reminderWorker.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -61,6 +66,12 @@ app.use('/api/users', userRoutes);
 app.use('/api', ticketRoutes);
 app.use('/api/coupons', couponRoutes);
 app.use('/api/chat', chatRoutes);
+app.use('/api/resources', resourceRoutes);
+app.use('/api/forum', forumRoutes);
+app.use('/api/notifications', notificationRoutes);
+app.use('/api/polls', pollRoutes);
+
+initReminderWorker();
 
 // Health check
 app.get('/api/health', (req, res) => res.json({ status: 'ok', time: new Date() }));

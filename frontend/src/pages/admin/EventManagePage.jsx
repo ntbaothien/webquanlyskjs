@@ -83,6 +83,7 @@ export default function MyEventsPage() {
                     <td><span className={`event-status-tag status-${e.status?.toLowerCase()}`} style={{ position: 'static' }}>{e.status}</span></td>
                     <td style={{ display: 'flex', gap: '0.4rem' }}>
                       <Link to={`/organizer/events/${e.id}/edit`} className="btn-sm btn-info" style={{ textDecoration: 'none' }}>✏️ Sửa</Link>
+                      <Link to={`/organizer/events/${e.id}/resources`} className="btn-sm btn-primary-sm" style={{ textDecoration: 'none' }}>🛠 Resource</Link>
                       <Link to={`/organizer/events/${e.id}/registrations`} className="btn-sm btn-success" style={{ textDecoration: 'none' }}>👥</Link>
                       <button className="btn-sm btn-danger" onClick={() => handleDelete(e.id)}>🗑</button>
                     </td>

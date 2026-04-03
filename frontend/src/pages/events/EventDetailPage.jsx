@@ -5,6 +5,8 @@ import axiosInstance from '../../utils/axiosInstance';
 import { getImageUrl } from '../../utils/getImageUrl';
 import useAuthStore from '../../store/authStore';
 import Navbar from '../../components/common/Navbar';
+import EventForum from '../../components/events/EventForum';
+import EventPolls from '../../components/events/EventPolls';
 import './Events.css';
 
 // ---- Countdown Hook ----
@@ -94,6 +96,9 @@ export default function EventDetailPage() {
 
   // Save event
   const [saved, setSaved] = useState(false);
+
+  // Tabs state: info, reviews, forum
+  const [activeTab, setActiveTab] = useState('info');
 
   // Countdown - must be called before any returns (React hooks rule)
   const countdown = useCountdown(data?.event?.startDate);
@@ -298,113 +303,156 @@ export default function EventDetailPage() {
               </div>
             </div>
 
-            {/* Zones info for paid events */}
-            {isPaid && event.seatZones?.length > 0 && (
-              <div style={{ margin: '1.5rem 0' }}>
-                <h3 style={{ marginBottom: '1rem' }}>🗺️ {t('eventDetail.zonesTickets')}</h3>
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '1rem' }}>
-                  {event.seatZones.map(zone => {
-                    const available = Math.max(0, zone.totalSeats - zone.soldSeats);
-                    const pct = zone.totalSeats > 0 ? (zone.soldSeats / zone.totalSeats) * 100 : 0;
-                    return (
-                      <div key={zone._id || zone.id} className="ticket-zone-card" style={{ borderLeftColor: zone.color || '#6c63ff' }}>
-                        <div style={{ fontWeight: 700, fontSize: '1rem', color: zone.color || 'var(--text-primary)' }}>{zone.name}</div>
-                        {zone.description && <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', margin: '0.25rem 0' }}>{zone.description}</div>}
-                        <div style={{ fontSize: '1.1rem', fontWeight: 700, color: '#a78bfa', margin: '0.5rem 0' }}>
-                          {zone.price === 0 ? t('eventDetail.free') : `$${zone.price.toLocaleString('en-US')}`}
-                        </div>
-                        <div style={{ fontSize: '0.8rem', color: available <= 5 ? '#ef4444' : 'var(--text-secondary)', marginBottom: '0.4rem' }}>
-                          {available <= 5 && available > 0 ? `⚡ ${t('eventDetail.onlySeatsLeft', { count: available })}` : `${available} / ${zone.totalSeats} seats`}
-                        </div>
-                        <div style={{ height: '4px', background: 'rgba(255,255,255,0.1)', borderRadius: '2px', overflow: 'hidden' }}>
-                          <div style={{ height: '100%', width: `${pct}%`, background: pct > 80 ? '#ef4444' : zone.color || '#6c63ff', transition: 'width 0.5s' }} />
-                        </div>
-                      </div>
-                    );
-                  })}
+            {/* 📑 TABS NAVIGATION */}
+            <div className="event-tabs-nav">
+              <button 
+                className={`tab-link ${activeTab === 'info' ? 'active' : ''}`}
+                onClick={() => setActiveTab('info')}
+              >
+                ℹ️ {t('eventDetail.tabInfo', 'Thông tin')}
+              </button>
+              <button 
+                className={`tab-link ${activeTab === 'reviews' ? 'active' : ''}`}
+                onClick={() => setActiveTab('reviews')}
+              >
+                ⭐ {t('eventDetail.tabReviews', 'Nhận xét & Đánh giá')}
+              </button>
+              <button 
+                className={`tab-link ${activeTab === 'forum' ? 'active' : ''}`}
+                onClick={() => setActiveTab('forum')}
+              >
+                💬 {t('eventDetail.tabForum', 'Diễn đàn thảo luận')}
+              </button>
+              <button 
+                className={`tab-link ${activeTab === 'polls' ? 'active' : ''}`}
+                onClick={() => setActiveTab('polls')}
+              >
+                📊 {t('eventDetail.tabPolls', 'Bình chọn')}
+              </button>
+            </div>
+
+            {activeTab === 'info' && (
+              <>
+                {/* Zones info for paid events */}
+                {isPaid && event.seatZones?.length > 0 && (
+                  <div style={{ margin: '1.5rem 0' }}>
+                    <h3 style={{ marginBottom: '1rem' }}>🗺️ {t('eventDetail.zonesTickets')}</h3>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '1rem' }}>
+                      {event.seatZones.map(zone => {
+                        const available = Math.max(0, zone.totalSeats - zone.soldSeats);
+                        const pct = zone.totalSeats > 0 ? (zone.soldSeats / zone.totalSeats) * 100 : 0;
+                        return (
+                          <div key={zone._id || zone.id} className="ticket-zone-card" style={{ borderLeftColor: zone.color || '#6c63ff' }}>
+                            <div style={{ fontWeight: 700, fontSize: '1rem', color: zone.color || 'var(--text-primary)' }}>{zone.name}</div>
+                            {zone.description && <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', margin: '0.25rem 0' }}>{zone.description}</div>}
+                            <div style={{ fontSize: '1.1rem', fontWeight: 700, color: '#a78bfa', margin: '0.5rem 0' }}>
+                              {zone.price === 0 ? t('eventDetail.free') : `$${zone.price.toLocaleString('en-US')}`}
+                            </div>
+                            <div style={{ fontSize: '0.8rem', color: available <= 5 ? '#ef4444' : 'var(--text-secondary)', marginBottom: '0.4rem' }}>
+                              {available <= 5 && available > 0 ? `⚡ ${t('eventDetail.onlySeatsLeft', { count: available })}` : `${available} / ${zone.totalSeats} seats`}
+                            </div>
+                            <div style={{ height: '4px', background: 'rgba(255,255,255,0.1)', borderRadius: '2px', overflow: 'hidden' }}>
+                              <div style={{ height: '100%', width: `${pct}%`, background: pct > 80 ? '#ef4444' : zone.color || '#6c63ff', transition: 'width 0.5s' }} />
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                <div className="event-detail-desc">
+                  <h3>{t('eventDetail.eventDescription')}</h3>
+                  <p style={{ whiteSpace: 'pre-wrap' }}>{event.description}</p>
                 </div>
-              </div>
+                {event.tags?.length > 0 && (
+                  <div className="event-tags">
+                    {event.tags.map(tag => <span key={tag} className="tag">{tag}</span>)}
+                  </div>
+                )}
+
+                {/* 📢 SHARE BUTTONS */}
+                <div style={{ margin: '1.5rem 0', padding: '1.25rem', background: 'var(--bg-card)', borderRadius: '12px', border: '1px solid var(--border)' }}>
+                  <h4 style={{ marginBottom: '0.75rem', color: 'var(--text-primary)' }}>📢 {t('eventDetail.shareEvent')}</h4>
+                  <ShareButtons event={event} eventId={id} />
+                </div>
+              </>
             )}
 
-            <div className="event-detail-desc">
-              <h3>{t('eventDetail.eventDescription')}</h3>
-              <p style={{ whiteSpace: 'pre-wrap' }}>{event.description}</p>
-            </div>
-            {event.tags?.length > 0 && (
-              <div className="event-tags">
-                {event.tags.map(t => <span key={t} className="tag">{t}</span>)}
-              </div>
-            )}
+            {activeTab === 'reviews' && (
+              <>
+                {/* ⭐ REVIEWS */}
+                <div className="event-reviews">
+                  <h3 style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-primary)' }}>
+                    ⭐ {t('eventDetail.reviewsFeedback')}
+                    <span style={{ fontSize: '1rem', fontWeight: 'normal', color: 'var(--text-secondary)' }}>
+                      ({reviews.length} {reviews.length === 1 ? t('eventDetail.review') : t('eventDetail.reviews')}{avgRating ? ` • ${avgRating}/5` : ''})
+                    </span>
+                  </h3>
 
-            {/* 📢 SHARE BUTTONS */}
-            <div style={{ margin: '1.5rem 0', padding: '1.25rem', background: 'var(--bg-card)', borderRadius: '12px', border: '1px solid var(--border)' }}>
-              <h4 style={{ marginBottom: '0.75rem', color: 'var(--text-primary)' }}>📢 {t('eventDetail.shareEvent')}</h4>
-              <ShareButtons event={event} eventId={id} />
-            </div>
-
-            {/* ⭐ REVIEWS */}
-            <hr style={{ margin: '2rem 0', borderColor: 'var(--border)' }} />
-            <div className="event-reviews">
-              <h3 style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem', color: 'var(--text-primary)' }}>
-                ⭐ {t('eventDetail.reviewsFeedback')}
-                <span style={{ fontSize: '1rem', fontWeight: 'normal', color: 'var(--text-secondary)' }}>
-                  ({reviews.length} {reviews.length === 1 ? t('eventDetail.review') : t('eventDetail.reviews')}{avgRating ? ` • ${avgRating}/5` : ''})
-                </span>
-              </h3>
-
-              {event.endDate && new Date(event.endDate) < new Date() && user?.role === 'ATTENDEE' && (
-                <div style={{ background: 'var(--bg-card)', padding: '1.5rem', borderRadius: '12px', marginBottom: '2rem', border: '1px solid var(--border)' }}>
-                  <h4 style={{ marginBottom: '1rem', fontSize: '1.1rem', color: 'var(--text-primary)' }}>{t('eventDetail.shareYourReview')}</h4>
-                  {reviewMsg.text && (
-                    <div className={`msg-box ${reviewMsg.type}`} style={{ marginBottom: '1rem' }}>{reviewMsg.text}</div>
+                  {event.endDate && new Date(event.endDate) < new Date() && user?.role === 'ATTENDEE' && (
+                    <div style={{ background: 'var(--bg-card)', padding: '1.5rem', borderRadius: '12px', marginBottom: '2rem', border: '1px solid var(--border)' }}>
+                      <h4 style={{ marginBottom: '1rem', fontSize: '1.1rem', color: 'var(--text-primary)' }}>{t('eventDetail.shareYourReview')}</h4>
+                      {reviewMsg.text && (
+                        <div className={`msg-box ${reviewMsg.type}`} style={{ marginBottom: '1rem' }}>{reviewMsg.text}</div>
+                      )}
+                      <form onSubmit={handleReviewSubmit}>
+                        <div style={{ marginBottom: '1rem' }}>
+                            <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-secondary)' }}>{t('eventDetail.rating')}:</label>
+                            <div style={{ display: 'flex', gap: '0.25rem' }}>
+                              {[1,2,3,4,5].map(s => (
+                                <button key={s} type="button" onClick={() => setRating(s)}
+                                  style={{ fontSize: '1.5rem', background: 'none', border: 'none', cursor: 'pointer', filter: s <= rating ? 'none' : 'grayscale(1) opacity(0.3)' }}>
+                                  ⭐
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                          <div style={{ marginBottom: '1rem' }}>
+                            <textarea
+                              required value={comment} onChange={e => setComment(e.target.value)}
+                              placeholder={t('eventDetail.sharePlaceholder')}
+                              style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', background: 'var(--bg-input)', color: 'var(--text-primary)', border: '1px solid var(--border)', minHeight: '100px' }}
+                            />
+                        </div>
+                        <button type="submit" className="btn-register" style={{ width: 'auto', padding: '0.75rem 2rem' }}>
+                          {t('eventDetail.submitReview')}
+                        </button>
+                      </form>
+                    </div>
                   )}
-                  <form onSubmit={handleReviewSubmit}>
-                    <div style={{ marginBottom: '1rem' }}>
-                        <label style={{ display: 'block', marginBottom: '0.5rem', color: 'var(--text-secondary)' }}>{t('eventDetail.rating')}:</label>
-                        <div style={{ display: 'flex', gap: '0.25rem' }}>
-                          {[1,2,3,4,5].map(s => (
-                            <button key={s} type="button" onClick={() => setRating(s)}
-                              style={{ fontSize: '1.5rem', background: 'none', border: 'none', cursor: 'pointer', filter: s <= rating ? 'none' : 'grayscale(1) opacity(0.3)' }}>
-                              ⭐
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                      <div style={{ marginBottom: '1rem' }}>
-                        <textarea
-                          required value={comment} onChange={e => setComment(e.target.value)}
-                          placeholder={t('eventDetail.sharePlaceholder')}
-                          style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', background: 'var(--bg-input)', color: 'var(--text-primary)', border: '1px solid var(--border)', minHeight: '100px' }}
-                        />
-                    </div>
-                    <button type="submit" className="btn-register" style={{ width: 'auto', padding: '0.75rem 2rem' }}>
-                      {t('eventDetail.submitReview')}
-                    </button>
-                  </form>
-                </div>
-              )}
 
-              {reviews.length === 0 ? (
-                <p style={{ color: 'var(--text-secondary)', fontStyle: 'italic' }}>{t('eventDetail.noReviewsYet')}</p>
-              ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                  {reviews.map(rev => (
-                    <div key={rev._id || rev.id} style={{ background: 'var(--bg-card)', padding: '1rem 1.5rem', borderRadius: '8px', borderLeft: '3px solid #6c63ff', border: '1px solid var(--border)' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                        <strong style={{ color: 'var(--text-primary)' }}>{rev.userFullName}</strong>
-                        <span style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
-                          {new Date(rev.createdAt).toLocaleString('en-US')}
-                        </span>
-                      </div>
-                      <div style={{ color: '#facc15', marginBottom: '0.5rem', fontSize: '0.9rem' }}>
-                        {'⭐'.repeat(rev.rating)}
-                      </div>
-                      <p style={{ margin: 0, color: 'var(--text-secondary)', whiteSpace: 'pre-wrap' }}>{rev.comment}</p>
+                  {reviews.length === 0 ? (
+                    <p style={{ color: 'var(--text-secondary)', fontStyle: 'italic' }}>{t('eventDetail.noReviewsYet')}</p>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                      {reviews.map(rev => (
+                        <div key={rev._id || rev.id} style={{ background: 'var(--bg-card)', padding: '1rem 1.5rem', borderRadius: '8px', borderLeft: '3px solid #6c63ff', border: '1px solid var(--border)' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
+                            <strong style={{ color: 'var(--text-primary)' }}>{rev.userFullName}</strong>
+                            <span style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
+                              {new Date(rev.createdAt).toLocaleString('en-US')}
+                            </span>
+                          </div>
+                          <div style={{ color: '#facc15', marginBottom: '0.5rem', fontSize: '0.9rem' }}>
+                            {'⭐'.repeat(rev.rating)}
+                          </div>
+                          <p style={{ margin: 0, color: 'var(--text-secondary)', whiteSpace: 'pre-wrap' }}>{rev.comment}</p>
+                        </div>
+                      ))}
                     </div>
-                  ))}
+                  )}
                 </div>
-              )}
-            </div>
+              </>
+            )}
+
+            {activeTab === 'forum' && (
+              <EventForum eventId={id} />
+            )}
+
+            {activeTab === 'polls' && (
+              <EventPolls eventId={id} isOrganizer={user?._id === event.organizerId || user?.role === 'ADMIN'} />
+            )}
 
             {/* 🎯 SIMILAR EVENTS */}
             {similar.length > 0 && (

@@ -3,6 +3,7 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import useAuthStore from '../../store/authStore';
 import useThemeStore from '../../store/themeStore';
+import NotificationBell from './NotificationBell';
 import './Navbar.css';
 
 export default function Navbar() {
@@ -41,6 +42,7 @@ export default function Navbar() {
             <span className="lang-flag">{i18n.language === 'vi' ? '🇻🇳' : '🇺🇸'}</span>
             {i18n.language === 'vi' ? 'VI' : 'EN'}
           </button>
+          {user && <NotificationBell />}
         </div>
 
         <button className="navbar-toggle" onClick={() => setMenuOpen(!menuOpen)}

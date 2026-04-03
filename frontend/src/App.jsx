@@ -23,6 +23,7 @@ import UserManagePage from './pages/admin/UserManagePage';
 import AdminEventManagePage from './pages/admin/AdminEventManagePage';
 import ReportsPage from './pages/admin/ReportsPage';
 import CouponManagePage from './pages/admin/CouponManagePage';
+import ResourceManagePage from './pages/organizer/ResourceManagePage';
 
 // Profile pages
 import ProfilePage from './pages/profile/ProfilePage';
@@ -85,6 +86,7 @@ export default function App() {
         <Route path="/organizer/my-events" element={<OrganizerRoute><MyEventsPage /></OrganizerRoute>} />
         <Route path="/organizer/events/create" element={<OrganizerRoute><EventFormPage /></OrganizerRoute>} />
         <Route path="/organizer/events/:id/edit" element={<OrganizerRoute><EventFormPage /></OrganizerRoute>} />
+        <Route path="/organizer/events/:id/resources" element={<OrganizerRoute><ResourceManagePage /></OrganizerRoute>} />
         <Route path="/organizer/check-in" element={<OrganizerRoute><CheckInPage /></OrganizerRoute>} />
 
         {/* Admin only */}
