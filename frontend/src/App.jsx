@@ -18,6 +18,7 @@ import CheckInPage from './pages/tickets/CheckInPage';
 // Organizer pages
 import EventFormPage from './pages/orders/OrderListPage';
 import MyEventsPage from './pages/admin/EventManagePage';
+import EventEmailRemindersPage from './pages/admin/EventEmailRemindersPage';
 
 // Admin pages
 import DashboardPage from './pages/admin/DashboardPage';
@@ -78,6 +79,7 @@ export default function App() {
         {/* Public Event Pages */}
         <Route path="/" element={<EventListPage />} />
         <Route path="/events/:id" element={<EventDetailPage />} />
+        <Route path="/organizer/events/:eventId/emails" element={<OrganizerRoute><EventEmailRemindersPage /></OrganizerRoute>} />
 
         {/* Attendee-only */}
         <Route path="/my-registrations" element={<PrivateRoute><MyTicketsPage /></PrivateRoute>} />
@@ -89,6 +91,7 @@ export default function App() {
         <Route path="/organizer/my-events" element={<OrganizerRoute><MyEventsPage /></OrganizerRoute>} />
         <Route path="/organizer/events/create" element={<OrganizerRoute><EventFormPage /></OrganizerRoute>} />
         <Route path="/organizer/events/:id/edit" element={<OrganizerRoute><EventFormPage /></OrganizerRoute>} />
+        <Route path="/organizer/events/:id/emails" element={<OrganizerRoute><EventEmailRemindersPage /></OrganizerRoute>} />
         <Route path="/organizer/check-in" element={<OrganizerRoute><CheckInPage /></OrganizerRoute>} />
 
         {/* Admin only */}

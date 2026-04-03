@@ -67,6 +67,7 @@ export default function EventListPage() {
 
     axiosInstance.get('/events', { params })
       .then(r => {
+        console.log('First event:', r.data.content?.[0]);
         setEvents(r.data.content || []);
         setTotalPages(r.data.totalPages || 0);
         setTotalElements(r.data.totalElements || 0);
@@ -77,7 +78,7 @@ export default function EventListPage() {
   const updateFilter = (key, val) => {
     const next = new URLSearchParams(searchParams);
     if (val) next.set(key, val); else next.delete(key);
-    next.delete('page');
+    if (key !== 'page') next.delete('page');
     setSearchParams(next);
   };
 

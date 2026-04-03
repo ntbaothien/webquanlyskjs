@@ -10,6 +10,7 @@ import { fileURLToPath } from 'url';
 
 import connectDB from './config/db.js';
 import { errorHandler } from './middleware/errorHandler.js';
+import { startReminderScheduler } from './utils/reminderService.js';
 
 // Routes
 import authRoutes from './routes/authRoutes.js';
@@ -21,6 +22,7 @@ import ticketRoutes from './routes/ticketRoutes.js';
 import userRoutes from './routes/userRoutes.js';
 import couponRoutes from './routes/couponRoutes.js';
 import chatRoutes from './routes/chatRoutes.js';
+import reminderRoutes from './routes/reminderRoutes.js';
 import ChatMessage from './models/ChatMessage.js';
 import { getBotReply } from './utils/aiBot.js';
 
@@ -40,6 +42,9 @@ app.set('io', io);
 
 // Connect MongoDB
 connectDB();
+
+// Start Event Reminder Scheduler
+startReminderScheduler();
 
 // Middleware
 app.use(helmet({ crossOriginResourcePolicy: false }));
@@ -61,6 +66,7 @@ app.use('/api/users', userRoutes);
 app.use('/api', ticketRoutes);
 app.use('/api/coupons', couponRoutes);
 app.use('/api/chat', chatRoutes);
+app.use('/api/reminders', reminderRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => res.json({ status: 'ok', time: new Date() }));
