@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import axiosInstance from '../../utils/axiosInstance';
 import useAuthStore from '../../store/authStore';
 import Navbar from '../../components/common/Navbar';
@@ -8,11 +9,14 @@ import './Profile.css';
 
 export default function ProfilePage() {
   const { user, updateUser, logout } = useAuthStore();
+  const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const [form, setForm] = useState({ fullName: user?.fullName || '' });
   const [loading, setLoading] = useState(false);
   const [stats, setStats] = useState(null);
   const [activeTab, setActiveTab] = useState('profile');
+
+  const locale = i18n.language === 'vi' ? 'vi-VN' : 'en-US';
 
   // Load user stats
   useEffect(() => {
@@ -27,9 +31,9 @@ export default function ProfilePage() {
     try {
       const { data } = await axiosInstance.put('/users/me', form);
       updateUser(data.data);
-      toast('Cập nhật thông tin thành công!', 'success');
+      toast(t('profile.updateSuccess'), 'success');
     } catch {
-      toast('Cập nhật thất bại', 'error');
+      toast(t('profile.updateFailed'), 'error');
     } finally {
       setLoading(false);
     }
@@ -43,40 +47,40 @@ export default function ProfilePage() {
     const confirm = fd.get('confirmPassword');
 
     if (newPw !== confirm) {
-      toast('Mật khẩu xác nhận không khớp', 'error');
+      toast(t('profile.passwordMismatch'), 'error');
       return;
     }
     if (newPw.length < 6) {
-      toast('Mật khẩu mới phải ít nhất 6 ký tự', 'error');
+      toast(t('profile.passwordMinLen'), 'error');
       return;
     }
 
     try {
       await axiosInstance.put('/users/me/password', { currentPassword: current, newPassword: newPw });
-      toast('Đổi mật khẩu thành công!', 'success');
+      toast(t('profile.passwordChanged'), 'success');
       e.target.reset();
     } catch (err) {
-      toast(err.response?.data?.error || 'Đổi mật khẩu thất bại', 'error');
+      toast(err.response?.data?.error || t('profile.passwordChangeFailed'), 'error');
     }
   };
 
   const roleMeta = {
-    ADMIN: { label: 'Quản trị viên', icon: '🛡️', color: '#ef4444', gradient: 'linear-gradient(135deg, #ef4444, #dc2626)' },
-    ORGANIZER: { label: 'Ban tổ chức', icon: '🎪', color: '#f59e0b', gradient: 'linear-gradient(135deg, #f59e0b, #d97706)' },
-    ATTENDEE: { label: 'Người tham gia', icon: '🎫', color: '#8b5cf6', gradient: 'linear-gradient(135deg, #8b5cf6, #6d28d9)' },
+    ADMIN:     { label: t('profile.roleAdmin'),     icon: '🛡️', color: '#ef4444', gradient: 'linear-gradient(135deg, #ef4444, #dc2626)' },
+    ORGANIZER: { label: t('profile.roleOrganizer'), icon: '🎪', color: '#f59e0b', gradient: 'linear-gradient(135deg, #f59e0b, #d97706)' },
+    ATTENDEE:  { label: t('profile.roleAttendee'),  icon: '🎫', color: '#8b5cf6', gradient: 'linear-gradient(135deg, #8b5cf6, #6d28d9)' },
   };
 
   const role = roleMeta[user?.role] || { label: user?.role, icon: '👤', color: '#8b5cf6', gradient: 'linear-gradient(135deg, #8b5cf6, #6d28d9)' };
   const initials = user?.fullName?.split(' ').map(w => w[0]).join('').slice(0, 2).toUpperCase() || 'U';
 
   const quickLinks = [
-    user?.role === 'ATTENDEE' && { label: 'Đăng ký của tôi', icon: '🎟️', to: '/my-registrations' },
-    user?.role === 'ATTENDEE' && { label: 'Sự kiện đã lưu', icon: '💾', to: '/profile/saved' },
-    user?.role === 'ATTENDEE' && { label: 'Ví tiền & Nạp tiền', icon: '💰', to: '/wallet' },
-    (user?.role === 'ORGANIZER' || user?.role === 'ADMIN') && { label: 'Sự kiện của tôi', icon: '📋', to: '/organizer/my-events' },
-    (user?.role === 'ORGANIZER' || user?.role === 'ADMIN') && { label: 'Tạo sự kiện', icon: '➕', to: '/organizer/events/create' },
-    user?.role === 'ADMIN' && { label: 'Bảng điều khiển', icon: '📊', to: '/admin' },
-    user?.role === 'ADMIN' && { label: 'Quản lý người dùng', icon: '👥', to: '/admin/users' },
+    user?.role === 'ATTENDEE' && { label: t('profile.myRegistrations'), icon: '🎟️', to: '/my-registrations' },
+    user?.role === 'ATTENDEE' && { label: t('profile.savedEvents'),      icon: '💾', to: '/profile/saved' },
+    user?.role === 'ATTENDEE' && { label: t('profile.walletTopup'),      icon: '💰', to: '/wallet' },
+    (user?.role === 'ORGANIZER' || user?.role === 'ADMIN') && { label: t('profile.myEvents'),    icon: '📋', to: '/organizer/my-events' },
+    (user?.role === 'ORGANIZER' || user?.role === 'ADMIN') && { label: t('profile.createEvent'), icon: '➕', to: '/organizer/events/create' },
+    user?.role === 'ADMIN' && { label: t('profile.dashboard'),      icon: '📊', to: '/admin' },
+    user?.role === 'ADMIN' && { label: t('profile.userManagement'), icon: '👥', to: '/admin/users' },
   ].filter(Boolean);
 
   return (
@@ -104,17 +108,17 @@ export default function ProfilePage() {
         {/* Balance Card */}
         <div className="balance-card">
           <div className="balance-info">
-            <span className="balance-label">💰 Số dư tài khoản</span>
+            <span className="balance-label">{t('profile.balanceLabel')}</span>
             <span className="balance-value">
               {stats?.balance != null
-                ? `${Number(stats.balance).toLocaleString('vi-VN')}đ`
+                ? `${Number(stats.balance).toLocaleString(locale)}đ`
                 : '—'}
             </span>
           </div>
           <div className="balance-actions">
             <button className="balance-btn balance-btn-deposit"
               onClick={() => navigate('/wallet')}>
-              💳 Nạp tiền
+              {t('profile.deposit')}
             </button>
           </div>
         </div>
@@ -123,21 +127,21 @@ export default function ProfilePage() {
         <div className="profile-stats">
           <div className="ps-item">
             <span className="ps-value">{stats?.registrations ?? '—'}</span>
-            <span className="ps-label">Đăng ký</span>
+            <span className="ps-label">{t('profile.registrations')}</span>
           </div>
           <div className="ps-item">
             <span className="ps-value">{stats?.bookings ?? '—'}</span>
-            <span className="ps-label">Đặt vé</span>
+            <span className="ps-label">{t('profile.bookings')}</span>
           </div>
           {(user?.role === 'ORGANIZER' || user?.role === 'ADMIN') && (
             <div className="ps-item">
               <span className="ps-value">{stats?.eventsCreated ?? '—'}</span>
-              <span className="ps-label">Sự kiện tạo</span>
+              <span className="ps-label">{t('profile.eventsCreated')}</span>
             </div>
           )}
           <div className="ps-item">
             <span className="ps-value">{stats?.reviews ?? '—'}</span>
-            <span className="ps-label">Đánh giá</span>
+            <span className="ps-label">{t('profile.reviews')}</span>
           </div>
         </div>
 
@@ -156,46 +160,46 @@ export default function ProfilePage() {
         <div className="profile-tabs">
           <button className={`profile-tab ${activeTab === 'profile' ? 'active' : ''}`}
             onClick={() => setActiveTab('profile')}>
-            ✏️ Thông tin
+            {t('profile.infoTab')}
           </button>
           <button className={`profile-tab ${activeTab === 'security' ? 'active' : ''}`}
             onClick={() => setActiveTab('security')}>
-            🔒 Bảo mật
+            {t('profile.securityTab')}
           </button>
         </div>
 
         {/* Tab Content */}
         {activeTab === 'profile' && (
           <div className="profile-card">
-            <h3 className="pc-title">Chỉnh sửa hồ sơ</h3>
+            <h3 className="pc-title">{t('profile.editProfile')}</h3>
             <form onSubmit={handleSubmit} className="profile-form">
               <div className="pf-group">
-                <label className="pf-label">Họ và tên</label>
+                <label className="pf-label">{t('profile.fullName')}</label>
                 <input className="pf-input" value={form.fullName}
                   onChange={e => setForm({ ...form, fullName: e.target.value })}
-                  required placeholder="Nhập họ và tên" />
+                  required placeholder={t('profile.enterName')} />
               </div>
 
               <div className="pf-group">
-                <label className="pf-label">Email</label>
+                <label className="pf-label">{t('profile.email')}</label>
                 <input className="pf-input disabled" value={user?.email} disabled />
-                <span className="pf-hint">Email không thể thay đổi</span>
+                <span className="pf-hint">{t('profile.emailCantChange')}</span>
               </div>
 
               <div className="pf-group">
-                <label className="pf-label">Vai trò</label>
+                <label className="pf-label">{t('profile.role')}</label>
                 <input className="pf-input disabled" value={role.label} disabled />
               </div>
 
               <div className="pf-group">
-                <label className="pf-label">Ngày tham gia</label>
+                <label className="pf-label">{t('profile.joinDate')}</label>
                 <input className="pf-input disabled"
-                  value={user?.createdAt ? new Date(user.createdAt).toLocaleDateString('vi-VN') : 'N/A'}
+                  value={user?.createdAt ? new Date(user.createdAt).toLocaleDateString(locale) : 'N/A'}
                   disabled />
               </div>
 
               <button type="submit" className="pf-submit" disabled={loading}>
-                {loading ? '⏳ Đang lưu...' : '💾 Lưu thay đổi'}
+                {loading ? t('profile.saving') : t('profile.saveChanges')}
               </button>
             </form>
           </div>
@@ -203,35 +207,35 @@ export default function ProfilePage() {
 
         {activeTab === 'security' && (
           <div className="profile-card">
-            <h3 className="pc-title">Đổi mật khẩu</h3>
+            <h3 className="pc-title">{t('profile.changePasswordTitle')}</h3>
             <form onSubmit={handleChangePassword} className="profile-form">
               <div className="pf-group">
-                <label className="pf-label">Mật khẩu hiện tại</label>
+                <label className="pf-label">{t('profile.currentPassword')}</label>
                 <input className="pf-input" type="password" name="currentPassword"
-                  required placeholder="Nhập mật khẩu hiện tại" />
+                  required placeholder={t('profile.enterCurrentPassword')} />
               </div>
               <div className="pf-group">
-                <label className="pf-label">Mật khẩu mới</label>
+                <label className="pf-label">{t('profile.newPassword')}</label>
                 <input className="pf-input" type="password" name="newPassword"
-                  required minLength={6} placeholder="Ít nhất 6 ký tự" />
+                  required minLength={6} placeholder={t('profile.enterNewPassword')} />
               </div>
               <div className="pf-group">
-                <label className="pf-label">Xác nhận mật khẩu mới</label>
+                <label className="pf-label">{t('profile.confirmNewPassword')}</label>
                 <input className="pf-input" type="password" name="confirmPassword"
-                  required placeholder="Nhập lại mật khẩu mới" />
+                  required placeholder={t('profile.enterConfirmPassword')} />
               </div>
               <button type="submit" className="pf-submit">
-                🔐 Đổi mật khẩu
+                {t('profile.changePasswordBtn')}
               </button>
             </form>
 
             <hr className="pc-divider" />
 
             <div className="danger-zone">
-              <h4 className="dz-title">⚠️ Vùng nguy hiểm</h4>
-              <p className="dz-desc">Đăng xuất khỏi tài khoản hiện tại</p>
+              <h4 className="dz-title">{t('profile.dangerZone')}</h4>
+              <p className="dz-desc">{t('profile.logoutDesc')}</p>
               <button className="dz-btn" onClick={logout}>
-                Đăng xuất
+                {t('profile.logoutBtn')}
               </button>
             </div>
           </div>

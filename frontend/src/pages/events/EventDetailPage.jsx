@@ -1,5 +1,6 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import axiosInstance from '../../utils/axiosInstance';
 import { getImageUrl } from '../../utils/getImageUrl';
 import useAuthStore from '../../store/authStore';
@@ -111,23 +112,19 @@ const SHARE_PLATFORMS = [
 ];
 
 function ShareButtons({ event, eventId }) {
+  const { t } = useTranslation();
   const [copied, setCopied] = useState(false);
   const [shareCount, setShareCount] = useState(0);
   const [nativeShareSupported] = useState(() => !!navigator.share);
 
-  // Regular SPA URL (for Twitter, Telegram, WhatsApp, LinkedIn, copy)
   const url = `${window.location.origin}/events/${eventId}`;
-
-  // OG proxy URL served by the backend — Facebook crawler reads OG meta tags from here
   const apiBase = (import.meta.env.VITE_API_URL || 'http://localhost:5000/api').replace(/\/api\/?$/, '');
   const ogUrl = `${apiBase}/share/events/${eventId}`;
-
-  const text = `Xem sự kiện "${event.title}" trên EventHub!`;
+  const text = `${t('eventDetail.checkOut')} "${event.title}" ${t('eventDetail.onEventHub')}`;
 
   const handleShare = (platform) => {
     const p = SHARE_PLATFORMS.find(x => x.key === platform);
     if (!p) return;
-    // Facebook uses the OG proxy URL so the crawler can read meta tags
     const shareUrl = platform === 'facebook' ? ogUrl : url;
     window.open(p.getUrl(shareUrl, text), '_blank', 'width=640,height=480,noopener,noreferrer');
     setShareCount(c => c + 1);
@@ -160,7 +157,7 @@ function ShareButtons({ event, eventId }) {
     <div className="share-section">
       <div className="share-stats">
         {shareCount > 0 && (
-          <span className="share-count">🚀 Đã chia sẻ {shareCount} lần trong phiên này</span>
+          <span className="share-count">🚀 {shareCount}</span>
         )}
       </div>
       <div className="share-buttons">
@@ -169,7 +166,7 @@ function ShareButtons({ event, eventId }) {
             key={p.key}
             onClick={() => handleShare(p.key)}
             className={`share-btn share-${p.key}`}
-            title={`Chia sẻ qua ${p.label}`}
+            title={p.label}
             style={{ '--share-color': p.color, '--share-bg': p.hoverBg, '--share-border': p.hoverBorder }}
           >
             <span className="share-icon">{p.icon}</span>
@@ -178,25 +175,25 @@ function ShareButtons({ event, eventId }) {
         ))}
 
         {nativeShareSupported && (
-          <button onClick={handleNativeShare} className="share-btn share-native" title="Chia sẻ">
+          <button onClick={handleNativeShare} className="share-btn share-native">
             <span className="share-icon">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>
                 <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
               </svg>
             </span>
-            <span className="share-label">Chia sẻ</span>
+            <span className="share-label">{t('eventDetail.shareEvent')}</span>
           </button>
         )}
 
-        <button onClick={copyLink} className={`share-btn share-copy ${copied ? 'copied' : ''}`} title="Copy link">
+        <button onClick={copyLink} className={`share-btn share-copy ${copied ? 'copied' : ''}`}>
           <span className="share-icon">
             {copied
               ? <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
               : <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
             }
           </span>
-          <span className="share-label">{copied ? 'Đã copy!' : 'Copy link'}</span>
+          <span className="share-label">{copied ? t('eventDetail.copied') : t('eventDetail.copyLink')}</span>
         </button>
       </div>
     </div>
@@ -213,13 +210,12 @@ const REPORT_REASONS = [
   { value: 'OTHER',         label: '❓ Lý do khác' },
 ];
 
-// ── Report Modal ──────────────────────────────────────────────────────────────
 function ReportModal({ eventId, eventTitle, onClose }) {
-  const [reason, setReason]         = useState('');
+  const [reason, setReason]           = useState('');
   const [description, setDescription] = useState('');
-  const [submitting, setSubmitting] = useState(false);
-  const [done, setDone]             = useState(false);
-  const [error, setError]           = useState('');
+  const [submitting, setSubmitting]   = useState(false);
+  const [done, setDone]               = useState(false);
+  const [error, setError]             = useState('');
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -301,6 +297,7 @@ function ReportModal({ eventId, eventTitle, onClose }) {
 export default function EventDetailPage() {
   const { id } = useParams();
   const { user } = useAuthStore();
+  const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -323,8 +320,9 @@ export default function EventDetailPage() {
   const [showReport, setShowReport] = useState(false);
   const [myReport, setMyReport] = useState(null);
 
-  // Countdown - must be called before any returns (React hooks rule)
   const countdown = useCountdown(data?.event?.startDate);
+
+  const locale = i18n.language === 'vi' ? 'vi-VN' : 'en-US';
 
   useEffect(() => {
     axiosInstance.get(`/events/${id}`)
@@ -340,7 +338,6 @@ export default function EventDetailPage() {
       .then(r => setSimilar(r.data || []))
       .catch(() => {});
 
-    // Check if user already reported
     axiosInstance.get(`/events/${id}/my-report`)
       .then(r => setMyReport(r.data.report))
       .catch(() => {});
@@ -358,7 +355,7 @@ export default function EventDetailPage() {
         event: { ...prev.event, currentAttendees: prev.event.currentAttendees + 1 }
       }));
     } catch (err) {
-      setMessage(err.response?.data?.error || 'Đăng ký thất bại');
+      setMessage(err.response?.data?.error || t('eventDetail.registrationFailed'));
       setMsgType('error');
     }
   };
@@ -366,7 +363,7 @@ export default function EventDetailPage() {
   const handleReviewSubmit = async (e) => {
     e.preventDefault();
     if (!user) { navigate('/login'); return; }
-    setReviewMsg({ text: 'Đang gửi đánh giá...', type: 'info' });
+    setReviewMsg({ text: t('eventDetail.submittingReview'), type: 'info' });
     try {
       const { data: res } = await axiosInstance.post(`/events/${id}/reviews`, { rating, comment });
       setReviewMsg({ text: res.message, type: 'success' });
@@ -374,7 +371,7 @@ export default function EventDetailPage() {
       setComment('');
       setRating(5);
     } catch (err) {
-      setReviewMsg({ text: err.response?.data?.error || 'Đánh giá thất bại', type: 'error' });
+      setReviewMsg({ text: err.response?.data?.error || t('eventDetail.reviewSubmissionFailed'), type: 'error' });
     }
   };
 
@@ -386,7 +383,7 @@ export default function EventDetailPage() {
     } catch {}
   };
 
-  if (loading) return <><Navbar /><div className="loading-state">⏳ Đang tải...</div></>;
+  if (loading) return <><Navbar /><div className="loading-state">⏳ {t('eventDetail.loading')}</div></>;
   if (!data) return null;
   const { event, spotsLeft, alreadyRegistered } = data;
   const isPaid = !event.free;
@@ -419,8 +416,8 @@ export default function EventDetailPage() {
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem', flexWrap: 'wrap' }}>
                   <span className={`event-status-tag status-${event.status?.toLowerCase()}`}>{event.status}</span>
                   {isPaid
-                    ? <span className="event-status-tag" style={{ background: 'rgba(255,193,7,0.15)', color: '#ffc107', border: '1px solid rgba(255,193,7,0.3)' }}>💳 Có phí</span>
-                    : <span className="event-status-tag" style={{ background: 'rgba(76,175,80,0.15)', color: '#81c784', border: '1px solid rgba(76,175,80,0.3)' }}>🆓 Miễn phí</span>
+                    ? <span className="event-status-tag" style={{ background: 'rgba(255,193,7,0.15)', color: '#ffc107', border: '1px solid rgba(255,193,7,0.3)' }}>💳 {t('eventDetail.paid')}</span>
+                    : <span className="event-status-tag" style={{ background: 'rgba(76,175,80,0.15)', color: '#81c784', border: '1px solid rgba(76,175,80,0.3)' }}>🆓 {t('eventDetail.free')}</span>
                   }
                   {avgRating && (
                     <span className="event-status-tag" style={{ background: 'rgba(250,204,21,0.15)', color: '#facc15', border: '1px solid rgba(250,204,21,0.3)' }}>
@@ -431,32 +428,32 @@ export default function EventDetailPage() {
                 <h1>{event.title}</h1>
                 <p className="event-meta">📍 {event.location}</p>
                 <p className="event-meta">
-                  📅 {new Date(event.startDate).toLocaleDateString('vi-VN', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
-                  {event.endDate && ` → ${new Date(event.endDate).toLocaleDateString('vi-VN')}`}
+                  📅 {new Date(event.startDate).toLocaleDateString(locale, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+                  {event.endDate && ` → ${new Date(event.endDate).toLocaleDateString(locale)}`}
                 </p>
-                <p className="event-meta">⏰ {new Date(event.startDate).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}</p>
-                <p className="event-meta">👤 Tổ chức: <strong>{event.organizerName}</strong></p>
+                <p className="event-meta">⏰ {new Date(event.startDate).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' })}</p>
+                <p className="event-meta">👤 {t('eventDetail.organizedBy')}: <strong>{event.organizerName}</strong></p>
 
                 {/* ⏳ COUNTDOWN */}
                 {countdown && !eventPast && (
                   <div className="countdown-container">
-                    <div className="countdown-label">⏳ Sự kiện bắt đầu sau</div>
+                    <div className="countdown-label">⏳ {t('eventDetail.eventStartsIn')}</div>
                     <div className="countdown-grid">
                       <div className="countdown-item">
                         <span className="countdown-num">{countdown.days}</span>
-                        <span className="countdown-unit">Ngày</span>
+                        <span className="countdown-unit">{t('eventDetail.days')}</span>
                       </div>
                       <div className="countdown-item">
                         <span className="countdown-num">{String(countdown.hours).padStart(2, '0')}</span>
-                        <span className="countdown-unit">Giờ</span>
+                        <span className="countdown-unit">{t('eventDetail.hours')}</span>
                       </div>
                       <div className="countdown-item">
                         <span className="countdown-num">{String(countdown.minutes).padStart(2, '0')}</span>
-                        <span className="countdown-unit">Phút</span>
+                        <span className="countdown-unit">{t('eventDetail.minutes')}</span>
                       </div>
                       <div className="countdown-item">
                         <span className="countdown-num">{String(countdown.seconds).padStart(2, '0')}</span>
-                        <span className="countdown-unit">Giây</span>
+                        <span className="countdown-unit">{t('eventDetail.seconds')}</span>
                       </div>
                     </div>
                   </div>
@@ -464,7 +461,7 @@ export default function EventDetailPage() {
 
                 {eventPast && (
                   <div style={{ background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: '10px', padding: '0.75rem 1rem', marginTop: '0.75rem', color: '#fca5a5' }}>
-                    🏁 Sự kiện đã kết thúc
+                    🏁 {t('eventDetail.eventHasEnded')}
                   </div>
                 )}
               </div>
@@ -474,12 +471,12 @@ export default function EventDetailPage() {
                 {!isPaid ? (
                   <div className="spots-box">
                     <div className="spots-number">{spotsLeft === 2147483647 ? '∞' : spotsLeft}</div>
-                    <div className="spots-label">Chỗ còn trống</div>
+                    <div className="spots-label">{t('eventDetail.spotsAvailable')}</div>
                   </div>
                 ) : (
                   <div className="spots-box">
                     <div className="spots-number">{totalAvailablePaid}</div>
-                    <div className="spots-label">Tổng ghế còn</div>
+                    <div className="spots-label">{t('eventDetail.totalSeats')}</div>
                   </div>
                 )}
 
@@ -489,32 +486,32 @@ export default function EventDetailPage() {
                   <>
                     {!isPaid && !alreadyRegistered && (
                       <button className="btn-register" onClick={handleRegister} disabled={spotsLeft === 0}>
-                        {spotsLeft === 0 ? '❌ Hết chỗ' : '🎟 Đặt chỗ miễn phí'}
+                        {spotsLeft === 0 ? `❌ ${t('eventDetail.soldOut')}` : `🎟 ${t('eventDetail.registerFree')}`}
                       </button>
                     )}
                     {!isPaid && alreadyRegistered && (
-                      <div className="msg-box success">✅ Bạn đã đặt chỗ sự kiện này</div>
+                      <div className="msg-box success">✅ {t('eventDetail.youRegistered')}</div>
                     )}
                     {isPaid && totalAvailablePaid > 0 && (
                       <button className="btn-register btn-paid" onClick={() => navigate(`/events/${id}/book`)}>
-                        🪑 Chọn chỗ ngồi & Đặt vé
+                        🪑 {t('eventDetail.selectSeatsBook')}
                       </button>
                     )}
                     {isPaid && totalAvailablePaid === 0 && (
-                      <button className="btn-register" disabled>❌ Hết vé</button>
+                      <button className="btn-register" disabled>❌ {t('eventDetail.ticketsSoldOut')}</button>
                     )}
                   </>
                 )}
 
                 {event.status === 'PUBLISHED' && eventPast && (
                   <button className="btn-register" disabled style={{ opacity: 0.5 }}>
-                    🏁 Sự kiện đã kết thúc
+                    🏁 {t('eventDetail.eventHasEnded')}
                   </button>
                 )}
 
                 {!user && event.status === 'PUBLISHED' && !eventPast && (
                   <button className="btn-register" onClick={() => navigate('/login')}>
-                    🔐 Đăng nhập để {isPaid ? 'mua vé' : 'đăng ký'}
+                    🔐 {isPaid ? t('eventDetail.loginToBuy') : t('eventDetail.loginToRegister')}
                   </button>
                 )}
 
@@ -522,19 +519,19 @@ export default function EventDetailPage() {
                 <div style={{ display: 'flex', gap: '0.5rem', marginTop: '0.75rem' }}>
                   <a href={getGoogleCalendarUrl(event)} target="_blank" rel="noopener noreferrer"
                     className="btn-secondary" style={{ flex: 1, textAlign: 'center', textDecoration: 'none' }}>
-                    📅 Google Calendar
+                    📅 {t('eventDetail.googleCalendar')}
                   </a>
                   <button onClick={handleSave} className="btn-secondary" style={{ flex: 1 }}>
-                    {saved ? '❤️ Đã lưu' : '🤍 Lưu sự kiện'}
+                    {saved ? `❤️ ${t('eventDetail.savedEvent')}` : `🤍 ${t('eventDetail.saveEvent')}`}
                   </button>
                 </div>
               </div>
             </div>
 
-            {/* Zones info cho sự kiện có phí */}
+            {/* Zones info for paid events */}
             {isPaid && event.seatZones?.length > 0 && (
               <div style={{ margin: '1.5rem 0' }}>
-                <h3 style={{ marginBottom: '1rem' }}>🗺️ Khu vực & Giá vé</h3>
+                <h3 style={{ marginBottom: '1rem' }}>🗺️ {t('eventDetail.zonesTickets')}</h3>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: '1rem' }}>
                   {event.seatZones.map(zone => {
                     const available = Math.max(0, zone.totalSeats - zone.soldSeats);
@@ -549,10 +546,12 @@ export default function EventDetailPage() {
                         <div style={{ fontWeight: 700, fontSize: '1rem', color: zone.color || '#fff' }}>{zone.name}</div>
                         {zone.description && <div style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.6)', margin: '0.25rem 0' }}>{zone.description}</div>}
                         <div style={{ fontSize: '1.1rem', fontWeight: 700, color: '#a78bfa', margin: '0.5rem 0' }}>
-                          {zone.price === 0 ? 'Miễn phí' : `${zone.price.toLocaleString('vi-VN')}đ`}
+                          {zone.price === 0 ? t('eventDetail.free') : `${zone.price.toLocaleString(locale)}đ`}
                         </div>
                         <div style={{ fontSize: '0.8rem', color: available <= 5 ? '#fca5a5' : 'rgba(255,255,255,0.5)', marginBottom: '0.4rem' }}>
-                          {available <= 5 && available > 0 ? `⚡ Chỉ còn ${available} ghế!` : `Còn ${available} / ${zone.totalSeats} ghế`}
+                          {available <= 5 && available > 0
+                            ? t('eventDetail.onlySeatsLeft', { count: available })
+                            : t('eventDetail.seatsAvailable', { available, total: zone.totalSeats })}
                         </div>
                         <div style={{ height: '4px', background: 'rgba(255,255,255,0.1)', borderRadius: '2px', overflow: 'hidden' }}>
                           <div style={{ height: '100%', width: `${pct}%`, background: pct > 80 ? '#ef4444' : zone.color || '#6c63ff', transition: 'width 0.5s' }} />
@@ -565,19 +564,19 @@ export default function EventDetailPage() {
             )}
 
             <div className="event-detail-desc">
-              <h3>Mô tả sự kiện</h3>
+              <h3>{t('eventDetail.eventDescription')}</h3>
               <p style={{ whiteSpace: 'pre-wrap' }}>{event.description}</p>
             </div>
             {event.tags?.length > 0 && (
               <div className="event-tags">
-                {event.tags.map(t => <span key={t} className="tag">{t}</span>)}
+                {event.tags.map(tag => <span key={tag} className="tag">{tag}</span>)}
               </div>
             )}
 
             {/* 📢 SHARE + REPORT */}
             <div style={{ margin: '1.5rem 0', padding: '1.25rem', background: 'rgba(255,255,255,0.03)', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.08)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem', flexWrap: 'wrap', gap: '0.5rem' }}>
-                <h4 style={{ margin: 0, color: 'rgba(255,255,255,0.8)' }}>📢 Chia sẻ sự kiện</h4>
+                <h4 style={{ margin: 0, color: 'rgba(255,255,255,0.8)' }}>📢 {t('eventDetail.shareEvent')}</h4>
                 {user && (
                   myReport ? (
                     <span style={{ fontSize: '0.78rem', color: '#fbbf24', background: 'rgba(251,191,36,0.1)', padding: '0.2rem 0.6rem', borderRadius: '6px', border: '1px solid rgba(251,191,36,0.2)' }}>
@@ -605,7 +604,6 @@ export default function EventDetailPage() {
                 eventTitle={event.title}
                 onClose={() => {
                   setShowReport(false);
-                  // Re-check report status after closing
                   axiosInstance.get(`/events/${id}/my-report`)
                     .then(r => setMyReport(r.data.report)).catch(() => {});
                 }}
@@ -616,21 +614,21 @@ export default function EventDetailPage() {
             <hr style={{ margin: '2rem 0', borderColor: 'rgba(255,255,255,0.1)' }} />
             <div className="event-reviews">
               <h3 style={{ marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                ⭐ Đánh giá & Phản hồi
+                ⭐ {t('eventDetail.reviewsFeedback')}
                 <span style={{ fontSize: '1rem', fontWeight: 'normal', color: 'rgba(255,255,255,0.6)' }}>
-                  ({reviews.length} đánh giá{avgRating ? ` • ${avgRating}/5` : ''})
+                  ({reviews.length} {t('eventDetail.reviews')}{avgRating ? ` • ${avgRating}/5` : ''})
                 </span>
               </h3>
 
               {event.endDate && new Date(event.endDate) < new Date() && user?.role === 'ATTENDEE' && (
                 <div style={{ background: 'rgba(255,255,255,0.05)', padding: '1.5rem', borderRadius: '12px', marginBottom: '2rem' }}>
-                  <h4 style={{ marginBottom: '1rem', fontSize: '1.1rem' }}>Viết đánh giá của bạn</h4>
+                  <h4 style={{ marginBottom: '1rem', fontSize: '1.1rem' }}>{t('eventDetail.shareYourReview')}</h4>
                   {reviewMsg.text && (
                     <div className={`msg-box ${reviewMsg.type}`} style={{ marginBottom: '1rem' }}>{reviewMsg.text}</div>
                   )}
                   <form onSubmit={handleReviewSubmit}>
                     <div style={{ marginBottom: '1rem' }}>
-                      <label style={{ display: 'block', marginBottom: '0.5rem', color: 'rgba(255,255,255,0.8)' }}>Số sao:</label>
+                      <label style={{ display: 'block', marginBottom: '0.5rem', color: 'rgba(255,255,255,0.8)' }}>{t('eventDetail.rating')}:</label>
                       <div style={{ display: 'flex', gap: '0.25rem' }}>
                         {[1,2,3,4,5].map(s => (
                           <button key={s} type="button" onClick={() => setRating(s)}
@@ -643,19 +641,19 @@ export default function EventDetailPage() {
                     <div style={{ marginBottom: '1rem' }}>
                       <textarea
                         required value={comment} onChange={e => setComment(e.target.value)}
-                        placeholder="Chia sẻ trải nghiệm của bạn về sự kiện này..."
+                        placeholder={t('eventDetail.sharePlaceholder')}
                         style={{ width: '100%', padding: '0.75rem', borderRadius: '8px', background: 'rgba(0,0,0,0.2)', color: 'white', border: '1px solid rgba(255,255,255,0.2)', minHeight: '100px' }}
                       />
                     </div>
                     <button type="submit" className="btn-register" style={{ width: 'auto', padding: '0.75rem 2rem' }}>
-                      Gửi đánh giá
+                      {t('eventDetail.submitReview')}
                     </button>
                   </form>
                 </div>
               )}
 
               {reviews.length === 0 ? (
-                <p style={{ color: 'rgba(255,255,255,0.6)', fontStyle: 'italic' }}>Chưa có đánh giá nào cho sự kiện này.</p>
+                <p style={{ color: 'rgba(255,255,255,0.6)', fontStyle: 'italic' }}>{t('eventDetail.noReviewsYet')}</p>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                   {reviews.map(rev => (
@@ -663,7 +661,7 @@ export default function EventDetailPage() {
                       <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
                         <strong style={{ color: '#fff' }}>{rev.userFullName}</strong>
                         <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.85rem' }}>
-                          {new Date(rev.createdAt).toLocaleString('vi-VN')}
+                          {new Date(rev.createdAt).toLocaleString(locale)}
                         </span>
                       </div>
                       <div style={{ color: '#facc15', marginBottom: '0.5rem', fontSize: '0.9rem' }}>
@@ -681,7 +679,7 @@ export default function EventDetailPage() {
               <>
                 <hr style={{ margin: '2rem 0', borderColor: 'rgba(255,255,255,0.1)' }} />
                 <div>
-                  <h3 style={{ marginBottom: '1rem' }}>🎯 Sự kiện tương tự</h3>
+                  <h3 style={{ marginBottom: '1rem' }}>🎯 {t('eventDetail.similarEvents')}</h3>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: '1rem' }}>
                     {similar.map(ev => (
                       <Link key={ev._id} to={`/events/${ev._id}`}
@@ -689,13 +687,13 @@ export default function EventDetailPage() {
                         className="similar-card">
                         <h4 style={{ color: '#fff', marginBottom: '0.4rem', fontSize: '0.95rem' }}>{ev.title}</h4>
                         <p style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.82rem', margin: 0 }}>
-                          📍 {ev.location} • 📅 {new Date(ev.startDate).toLocaleDateString('vi-VN')}
+                          📍 {ev.location} • 📅 {new Date(ev.startDate).toLocaleDateString(locale)}
                         </p>
                         <div style={{ marginTop: '0.5rem' }}>
                           {ev.free ? (
-                            <span style={{ fontSize: '0.75rem', color: '#81c784', background: 'rgba(76,175,80,0.15)', padding: '2px 8px', borderRadius: '10px' }}>Miễn phí</span>
+                            <span style={{ fontSize: '0.75rem', color: '#81c784', background: 'rgba(76,175,80,0.15)', padding: '2px 8px', borderRadius: '10px' }}>{t('eventDetail.free')}</span>
                           ) : (
-                            <span style={{ fontSize: '0.75rem', color: '#ffc107', background: 'rgba(255,193,7,0.15)', padding: '2px 8px', borderRadius: '10px' }}>Có phí</span>
+                            <span style={{ fontSize: '0.75rem', color: '#ffc107', background: 'rgba(255,193,7,0.15)', padding: '2px 8px', borderRadius: '10px' }}>{t('eventDetail.paid')}</span>
                           )}
                         </div>
                       </Link>

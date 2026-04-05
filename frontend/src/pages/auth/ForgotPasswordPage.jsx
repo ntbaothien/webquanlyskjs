@@ -1,9 +1,11 @@
 import { Link } from 'react-router-dom';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import axiosInstance from '../../utils/axiosInstance';
 import './Auth.css';
 
 export default function ForgotPasswordPage() {
+  const { t } = useTranslation();
   const [email, setEmail] = useState('');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -20,7 +22,7 @@ export default function ForgotPasswordPage() {
       setSuccess(response.data.message);
       setEmail('');
     } catch (err) {
-      setError(err.response?.data?.error || 'Không thể kết nối đến server');
+      setError(err.response?.data?.error || t('auth.serverError'));
       console.error(err);
     } finally {
       setIsLoading(false);
@@ -31,7 +33,7 @@ export default function ForgotPasswordPage() {
     <div className="auth-bg">
       <div className="auth-card">
         <div className="auth-logo">🔐 EventHub</div>
-        <h2>Quên mật khẩu?</h2>
+        <h2>{t('auth.forgotTitle')}</h2>
 
         {error && (
           <div className="auth-error">
@@ -41,10 +43,9 @@ export default function ForgotPasswordPage() {
 
         {success && (
           <div className="auth-success">
-            <div>✅ Email đã được gửi!</div>
+            <div>{t('auth.emailSentTitle')}</div>
             <div style={{ fontSize: '13px', marginTop: '12px', opacity: 0.8, lineHeight: '1.5' }}>
-              📧 Kiểm tra email của bạn để tìm liên kết đặt lại mật khẩu.<br/>
-              (Nếu chạy local, check console backend để lấy link)
+              {t('auth.emailSentDesc')}
             </div>
           </div>
         )}
@@ -52,12 +53,12 @@ export default function ForgotPasswordPage() {
         {!success && (
           <>
             <p style={{ color: 'rgba(255,255,255,0.7)', marginBottom: '20px', fontSize: '14px' }}>
-              Nhập email của bạn và chúng tôi sẽ gửi liên kết đặt lại mật khẩu
+              {t('auth.forgotDesc')}
             </p>
 
             <form onSubmit={handleSubmit}>
               <div className="form-group">
-                <label>Email</label>
+                <label>{t('auth.email')}</label>
                 <input
                   type="email"
                   placeholder="you@example.com"
@@ -67,12 +68,12 @@ export default function ForgotPasswordPage() {
                 />
               </div>
               <button className="btn-primary" type="submit" disabled={isLoading}>
-                {isLoading ? 'Đang gửi...' : 'Gửi email'}
+                {isLoading ? t('auth.sending') : t('auth.sendEmail')}
               </button>
             </form>
 
             <p className="auth-footer">
-              Nhớ mật khẩu? <Link to="/login">Đăng nhập</Link>
+              {t('auth.rememberPassword')} <Link to="/login">{t('auth.loginBtn')}</Link>
             </p>
           </>
         )}
