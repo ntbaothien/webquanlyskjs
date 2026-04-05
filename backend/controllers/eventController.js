@@ -5,29 +5,58 @@ import Ticket from '../models/Ticket.js';
 import Review from '../models/Review.js';
 import User from '../models/User.js';
 import Notification from '../models/Notification.js';
+import EventReport from '../models/EventReport.js';
 import { paginate } from '../utils/pagination.js';
 import { generateTicketCode } from '../utils/generateTicketCode.js';
 
 /**
  * GET /api/events — paginated, filterable
+ * Query params:
+ *   keyword, tag, location, dateFrom, dateTo  — existing
+ *   free        : 'true' | 'false'            — filter free/paid
+ *   priceMax    : number                       — max ticket price (paid events)
+ *   sort        : date_asc | date_desc | popular | newest
+ *   timeStatus  : upcoming | ongoing | past
+ *   organizer   : string                       — search by organizer name
  */
 export const getEvents = async (req, res) => {
   try {
-    const { keyword, tag, location, dateFrom, dateTo, page, size } = req.query;
-    const filter = { status: 'PUBLISHED' };
+    const {
+      keyword, tag, location, dateFrom, dateTo,
+      free, priceMax, sort, timeStatus, organizer,
+      page, size
+    } = req.query;
 
+    const filter = { status: 'PUBLISHED' };
+    const now = new Date();
+
+    // Keyword: title, description, tags, organizer
     if (keyword) {
+      const rx = { $regex: keyword, $options: 'i' };
       filter.$or = [
-        { title: { $regex: keyword, $options: 'i' } },
-        { description: { $regex: keyword, $options: 'i' } }
+        { title: rx },
+        { description: rx },
+        { tags: rx },
+        { organizerName: rx }
       ];
     }
+
+    // Organizer search (separate field)
+    if (organizer) {
+      filter.organizerName = { $regex: organizer, $options: 'i' };
+    }
+
+    // Tag exact match (case-insensitive)
     if (tag) {
       filter.tags = { $regex: new RegExp(`^${tag}$`, 'i') };
     }
+
+    // Location
     if (location) {
       filter.location = { $regex: location, $options: 'i' };
     }
+
+    // Date range (explicit dateFrom/dateTo)
     if (dateFrom || dateTo) {
       filter.startDate = {};
       if (dateFrom) filter.startDate.$gte = new Date(dateFrom);
@@ -38,11 +67,48 @@ export const getEvents = async (req, res) => {
       }
     }
 
-    const result = await paginate(Event, filter, {
-      page, size,
-      sort: { startDate: 1 }
-    });
+    // Time status (overrides dateFrom/dateTo if provided)
+    if (timeStatus === 'upcoming') {
+      filter.startDate = { $gt: now };
+    } else if (timeStatus === 'ongoing') {
+      filter.startDate = { $lte: now };
+      filter.$or = filter.$or || [];
+      filter.endDate = { $gte: now };
+    } else if (timeStatus === 'past') {
+      filter.$and = [
+        ...(filter.$and || []),
+        {
+          $or: [
+            { endDate: { $lt: now } },
+            { endDate: { $exists: false }, startDate: { $lt: now } }
+          ]
+        }
+      ];
+    }
 
+    // Free / Paid filter
+    if (free === 'true') {
+      filter.free = true;
+    } else if (free === 'false') {
+      filter.free = false;
+      // Price cap: filter events where at least one zone has price <= priceMax
+      if (priceMax !== undefined && priceMax !== '') {
+        filter['seatZones'] = {
+          $elemMatch: { price: { $lte: Number(priceMax) } }
+        };
+      }
+    }
+
+    // Sort
+    const sortMap = {
+      date_asc:  { startDate: 1 },
+      date_desc: { startDate: -1 },
+      popular:   { currentAttendees: -1, startDate: 1 },
+      newest:    { createdAt: -1 },
+    };
+    const sortOption = sortMap[sort] || { startDate: 1 };
+
+    const result = await paginate(Event, filter, { page, size, sort: sortOption });
     res.json(result);
   } catch (error) {
     res.status(500).json({ error: error.message });
@@ -427,6 +493,54 @@ export const bookEvent = async (req, res) => {
       booking,
       newBalance: updatedUser.balance
     });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+/**
+ * POST /api/events/:id/report — submit a violation report
+ */
+export const reportEvent = async (req, res) => {
+  try {
+    const event = await Event.findById(req.params.id).select('title organizerId status');
+    if (!event) return res.status(404).json({ error: 'Sự kiện không tồn tại' });
+
+    const { reason, description } = req.body;
+    const validReasons = ['SPAM', 'MISLEADING', 'INAPPROPRIATE', 'FRAUD', 'DUPLICATE', 'OTHER'];
+    if (!reason || !validReasons.includes(reason)) {
+      return res.status(400).json({ error: 'Lý do báo cáo không hợp lệ' });
+    }
+
+    const report = await EventReport.create({
+      eventId:       event._id,
+      eventTitle:    event.title,
+      reporterId:    req.user._id,
+      reporterName:  req.user.fullName,
+      reporterEmail: req.user.email,
+      reason,
+      description: description?.substring(0, 1000) || ''
+    });
+
+    res.status(201).json({ message: 'Cảm ơn bạn đã báo cáo. Chúng tôi sẽ xem xét sớm nhất.', report });
+  } catch (error) {
+    if (error.code === 11000) {
+      return res.status(400).json({ error: 'Bạn đã báo cáo sự kiện này rồi.' });
+    }
+    res.status(500).json({ error: error.message });
+  }
+};
+
+/**
+ * GET /api/events/:id/my-report — check if current user already reported
+ */
+export const getMyReport = async (req, res) => {
+  try {
+    const report = await EventReport.findOne({
+      eventId: req.params.id,
+      reporterId: req.user._id
+    }).select('reason status createdAt').lean();
+    res.json({ report: report || null });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

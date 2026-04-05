@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import axiosInstance from '../../utils/axiosInstance';
 import { getImageUrl } from '../../utils/getImageUrl';
@@ -42,32 +42,258 @@ function getGoogleCalendarUrl(event) {
 }
 
 // ---- Share Component ----
+const SHARE_PLATFORMS = [
+  {
+    key: 'facebook',
+    label: 'Facebook',
+    color: '#1877f2',
+    hoverBg: 'rgba(24,119,242,0.18)',
+    hoverBorder: 'rgba(24,119,242,0.45)',
+    icon: (
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M24 12.073C24 5.405 18.627 0 12 0S0 5.405 0 12.073C0 18.1 4.388 23.094 10.125 24v-8.437H7.078v-3.49h3.047V9.41c0-3.025 1.792-4.697 4.533-4.697 1.312 0 2.686.235 2.686.235v2.97h-1.513c-1.491 0-1.956.93-1.956 1.887v2.254h3.328l-.532 3.49h-2.796V24C19.612 23.094 24 18.1 24 12.073z"/>
+      </svg>
+    ),
+    getUrl: (url) => `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`,
+  },
+  {
+    key: 'twitter',
+    label: 'Twitter/X',
+    color: '#1d9bf0',
+    hoverBg: 'rgba(29,155,240,0.18)',
+    hoverBorder: 'rgba(29,155,240,0.45)',
+    icon: (
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+      </svg>
+    ),
+    getUrl: (url, text) => `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`,
+  },
+  {
+    key: 'telegram',
+    label: 'Telegram',
+    color: '#26a6d3',
+    hoverBg: 'rgba(38,166,211,0.18)',
+    hoverBorder: 'rgba(38,166,211,0.45)',
+    icon: (
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/>
+      </svg>
+    ),
+    getUrl: (url, text) => `https://t.me/share/url?url=${encodeURIComponent(url)}&text=${encodeURIComponent(text)}`,
+  },
+  {
+    key: 'whatsapp',
+    label: 'WhatsApp',
+    color: '#25d366',
+    hoverBg: 'rgba(37,211,102,0.18)',
+    hoverBorder: 'rgba(37,211,102,0.45)',
+    icon: (
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413z"/>
+      </svg>
+    ),
+    getUrl: (url, text) => `https://wa.me/?text=${encodeURIComponent(`${text} ${url}`)}`,
+  },
+  {
+    key: 'linkedin',
+    label: 'LinkedIn',
+    color: '#0a66c2',
+    hoverBg: 'rgba(10,102,194,0.18)',
+    hoverBorder: 'rgba(10,102,194,0.45)',
+    icon: (
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M20.447 20.452h-3.554v-5.569c0-1.328-.027-3.037-1.852-3.037-1.853 0-2.136 1.445-2.136 2.939v5.667H9.351V9h3.414v1.561h.046c.477-.9 1.637-1.85 3.37-1.85 3.601 0 4.267 2.37 4.267 5.455v6.286zM5.337 7.433a2.062 2.062 0 0 1-2.063-2.065 2.064 2.064 0 1 1 2.063 2.065zm1.782 13.019H3.555V9h3.564v11.452zM22.225 0H1.771C.792 0 0 .774 0 1.729v20.542C0 23.227.792 24 1.771 24h20.451C23.2 24 24 23.227 24 22.271V1.729C24 .774 23.2 0 22.222 0h.003z"/>
+      </svg>
+    ),
+    getUrl: (url, text) => `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(url)}&summary=${encodeURIComponent(text)}`,
+  },
+];
+
 function ShareButtons({ event, eventId }) {
   const [copied, setCopied] = useState(false);
+  const [shareCount, setShareCount] = useState(0);
+  const [nativeShareSupported] = useState(() => !!navigator.share);
+
+  // Regular SPA URL (for Twitter, Telegram, WhatsApp, LinkedIn, copy)
   const url = `${window.location.origin}/events/${eventId}`;
+
+  // OG proxy URL served by the backend — Facebook crawler reads OG meta tags from here
+  const apiBase = (import.meta.env.VITE_API_URL || 'http://localhost:5000/api').replace(/\/api\/?$/, '');
+  const ogUrl = `${apiBase}/share/events/${eventId}`;
+
   const text = `Xem sự kiện "${event.title}" trên EventHub!`;
 
-  const share = (platform) => {
-    const urls = {
-      facebook: `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}`,
-      twitter: `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`,
-      telegram: `https://t.me/share/url?url=${encodeURIComponent(url)}&text=${encodeURIComponent(text)}`,
-    };
-    window.open(urls[platform], '_blank', 'width=600,height=400');
+  const handleShare = (platform) => {
+    const p = SHARE_PLATFORMS.find(x => x.key === platform);
+    if (!p) return;
+    // Facebook uses the OG proxy URL so the crawler can read meta tags
+    const shareUrl = platform === 'facebook' ? ogUrl : url;
+    window.open(p.getUrl(shareUrl, text), '_blank', 'width=640,height=480,noopener,noreferrer');
+    setShareCount(c => c + 1);
   };
 
-  const copyLink = () => {
-    navigator.clipboard.writeText(url);
+  const handleNativeShare = async () => {
+    try {
+      await navigator.share({ title: event.title, text, url });
+      setShareCount(c => c + 1);
+    } catch {}
+  };
+
+  const copyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(url);
+    } catch {
+      const el = document.createElement('textarea');
+      el.value = url;
+      document.body.appendChild(el);
+      el.select();
+      document.execCommand('copy');
+      document.body.removeChild(el);
+    }
     setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
+    setShareCount(c => c + 1);
+    setTimeout(() => setCopied(false), 2500);
   };
 
   return (
-    <div className="share-buttons">
-      <button onClick={() => share('facebook')} className="share-btn share-fb" title="Facebook">📘 Facebook</button>
-      <button onClick={() => share('twitter')} className="share-btn share-tw" title="Twitter/X">🐦 Twitter</button>
-      <button onClick={() => share('telegram')} className="share-btn share-tg" title="Telegram">✈️ Telegram</button>
-      <button onClick={copyLink} className="share-btn share-copy">{copied ? '✅ Đã copy!' : '🔗 Copy link'}</button>
+    <div className="share-section">
+      <div className="share-stats">
+        {shareCount > 0 && (
+          <span className="share-count">🚀 Đã chia sẻ {shareCount} lần trong phiên này</span>
+        )}
+      </div>
+      <div className="share-buttons">
+        {SHARE_PLATFORMS.map(p => (
+          <button
+            key={p.key}
+            onClick={() => handleShare(p.key)}
+            className={`share-btn share-${p.key}`}
+            title={`Chia sẻ qua ${p.label}`}
+            style={{ '--share-color': p.color, '--share-bg': p.hoverBg, '--share-border': p.hoverBorder }}
+          >
+            <span className="share-icon">{p.icon}</span>
+            <span className="share-label">{p.label}</span>
+          </button>
+        ))}
+
+        {nativeShareSupported && (
+          <button onClick={handleNativeShare} className="share-btn share-native" title="Chia sẻ">
+            <span className="share-icon">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/>
+                <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/>
+              </svg>
+            </span>
+            <span className="share-label">Chia sẻ</span>
+          </button>
+        )}
+
+        <button onClick={copyLink} className={`share-btn share-copy ${copied ? 'copied' : ''}`} title="Copy link">
+          <span className="share-icon">
+            {copied
+              ? <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+              : <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+            }
+          </span>
+          <span className="share-label">{copied ? 'Đã copy!' : 'Copy link'}</span>
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ── Report reasons ──────────────────────────────────────────────────────────
+const REPORT_REASONS = [
+  { value: 'SPAM',          label: '🚫 Spam / Quảng cáo rác' },
+  { value: 'MISLEADING',    label: '⚠️ Thông tin sai lệch / gây hiểu nhầm' },
+  { value: 'INAPPROPRIATE', label: '🔞 Nội dung không phù hợp' },
+  { value: 'FRAUD',         label: '💸 Lừa đảo / Gian lận' },
+  { value: 'DUPLICATE',     label: '📋 Sự kiện trùng lặp' },
+  { value: 'OTHER',         label: '❓ Lý do khác' },
+];
+
+// ── Report Modal ──────────────────────────────────────────────────────────────
+function ReportModal({ eventId, eventTitle, onClose }) {
+  const [reason, setReason]         = useState('');
+  const [description, setDescription] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [done, setDone]             = useState(false);
+  const [error, setError]           = useState('');
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!reason) { setError('Vui lòng chọn lý do báo cáo'); return; }
+    setSubmitting(true);
+    setError('');
+    try {
+      await axiosInstance.post(`/events/${eventId}/report`, { reason, description });
+      setDone(true);
+    } catch (err) {
+      setError(err.response?.data?.error || 'Gửi báo cáo thất bại');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="report-overlay" onClick={onClose}>
+      <div className="report-modal" onClick={e => e.stopPropagation()}>
+        <div className="report-modal-header">
+          <div>
+            <h3>🚨 Báo cáo vi phạm</h3>
+            <p className="report-modal-sub">{eventTitle}</p>
+          </div>
+          <button className="report-close-btn" onClick={onClose}>✕</button>
+        </div>
+
+        {done ? (
+          <div className="report-done">
+            <div className="report-done-icon">✅</div>
+            <h4>Báo cáo đã được gửi!</h4>
+            <p>Cảm ơn bạn đã phản ánh. Đội ngũ kiểm duyệt sẽ xem xét và xử lý sớm nhất.</p>
+            <button className="report-submit-btn" onClick={onClose}>Đóng</button>
+          </div>
+        ) : (
+          <form onSubmit={handleSubmit}>
+            <div className="report-field">
+              <label className="report-label">Lý do báo cáo <span style={{ color: '#f87171' }}>*</span></label>
+              <div className="report-reasons">
+                {REPORT_REASONS.map(r => (
+                  <label key={r.value} className={`report-reason-item ${reason === r.value ? 'selected' : ''}`}>
+                    <input type="radio" name="reason" value={r.value}
+                      checked={reason === r.value}
+                      onChange={() => { setReason(r.value); setError(''); }} />
+                    {r.label}
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            <div className="report-field">
+              <label className="report-label">Mô tả thêm (tùy chọn)</label>
+              <textarea
+                className="report-textarea"
+                placeholder="Mô tả chi tiết vấn đề bạn gặp phải với sự kiện này..."
+                value={description}
+                onChange={e => setDescription(e.target.value)}
+                maxLength={1000}
+                rows={4}
+              />
+              <span className="report-char-count">{description.length}/1000</span>
+            </div>
+
+            {error && <div className="report-error">⚠️ {error}</div>}
+
+            <div className="report-actions">
+              <button type="button" className="report-cancel-btn" onClick={onClose}>Hủy</button>
+              <button type="submit" className="report-submit-btn" disabled={submitting || !reason}>
+                {submitting ? '⏳ Đang gửi...' : '🚨 Gửi báo cáo'}
+              </button>
+            </div>
+          </form>
+        )}
+      </div>
     </div>
   );
 }
@@ -93,6 +319,10 @@ export default function EventDetailPage() {
   // Save event
   const [saved, setSaved] = useState(false);
 
+  // Report
+  const [showReport, setShowReport] = useState(false);
+  const [myReport, setMyReport] = useState(null);
+
   // Countdown - must be called before any returns (React hooks rule)
   const countdown = useCountdown(data?.event?.startDate);
 
@@ -108,6 +338,11 @@ export default function EventDetailPage() {
 
     axiosInstance.get(`/events/${id}/similar`)
       .then(r => setSimilar(r.data || []))
+      .catch(() => {});
+
+    // Check if user already reported
+    axiosInstance.get(`/events/${id}/my-report`)
+      .then(r => setMyReport(r.data.report))
       .catch(() => {});
   }, [id]);
 
@@ -339,11 +574,43 @@ export default function EventDetailPage() {
               </div>
             )}
 
-            {/* 📢 SHARE BUTTONS */}
+            {/* 📢 SHARE + REPORT */}
             <div style={{ margin: '1.5rem 0', padding: '1.25rem', background: 'rgba(255,255,255,0.03)', borderRadius: '12px', border: '1px solid rgba(255,255,255,0.08)' }}>
-              <h4 style={{ marginBottom: '0.75rem', color: 'rgba(255,255,255,0.8)' }}>📢 Chia sẻ sự kiện</h4>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem', flexWrap: 'wrap', gap: '0.5rem' }}>
+                <h4 style={{ margin: 0, color: 'rgba(255,255,255,0.8)' }}>📢 Chia sẻ sự kiện</h4>
+                {user && (
+                  myReport ? (
+                    <span style={{ fontSize: '0.78rem', color: '#fbbf24', background: 'rgba(251,191,36,0.1)', padding: '0.2rem 0.6rem', borderRadius: '6px', border: '1px solid rgba(251,191,36,0.2)' }}>
+                      ⚠️ Đã báo cáo sự kiện này
+                    </span>
+                  ) : (
+                    <button
+                      onClick={() => setShowReport(true)}
+                      style={{ background: 'none', border: '1px solid rgba(248,113,113,0.25)', borderRadius: '8px', color: 'rgba(248,113,113,0.7)', fontSize: '0.78rem', padding: '0.25rem 0.65rem', cursor: 'pointer', transition: 'all 0.2s' }}
+                      onMouseOver={e => { e.currentTarget.style.borderColor = 'rgba(248,113,113,0.5)'; e.currentTarget.style.color = '#f87171'; e.currentTarget.style.background = 'rgba(248,113,113,0.08)'; }}
+                      onMouseOut={e => { e.currentTarget.style.borderColor = 'rgba(248,113,113,0.25)'; e.currentTarget.style.color = 'rgba(248,113,113,0.7)'; e.currentTarget.style.background = 'none'; }}
+                    >
+                      🚨 Báo cáo vi phạm
+                    </button>
+                  )
+                )}
+              </div>
               <ShareButtons event={event} eventId={id} />
             </div>
+
+            {/* Report Modal */}
+            {showReport && (
+              <ReportModal
+                eventId={id}
+                eventTitle={event.title}
+                onClose={() => {
+                  setShowReport(false);
+                  // Re-check report status after closing
+                  axiosInstance.get(`/events/${id}/my-report`)
+                    .then(r => setMyReport(r.data.report)).catch(() => {});
+                }}
+              />
+            )}
 
             {/* ⭐ REVIEWS */}
             <hr style={{ margin: '2rem 0', borderColor: 'rgba(255,255,255,0.1)' }} />

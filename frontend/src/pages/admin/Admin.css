@@ -598,3 +598,132 @@
     overflow-x: auto;
   }
 }
+
+/* ══ Violation Reports page ═══════════════════════════════════ */
+.vr-tabs {
+  display: flex;
+  gap: 0.25rem;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+  margin-bottom: 1.25rem;
+  flex-wrap: wrap;
+}
+.vr-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.55rem 1rem;
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: rgba(255,255,255,0.5);
+  font-size: 0.88rem;
+  font-weight: 500;
+  cursor: pointer;
+  margin-bottom: -1px;
+  transition: all 0.2s;
+}
+.vr-tab:hover { color: rgba(255,255,255,0.8); }
+.vr-tab.active { color: #a78bfa; border-bottom-color: #a78bfa; font-weight: 600; }
+
+.vr-tab-badge {
+  background: rgba(255,255,255,0.08);
+  color: rgba(255,255,255,0.5);
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 0.1rem 0.45rem;
+  border-radius: 10px;
+  min-width: 18px;
+  text-align: center;
+}
+.vr-tab-badge.urgent {
+  background: rgba(239,68,68,0.2);
+  color: #f87171;
+}
+
+.vr-search-bar {
+  display: flex;
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+}
+
+.vr-reason-badge {
+  display: inline-block;
+  padding: 0.18rem 0.55rem;
+  border-radius: 6px;
+  background: rgba(167,139,250,0.12);
+  color: #c4b5fd;
+  font-size: 0.78rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.admin-cell-muted { color: rgba(255,255,255,0.3); font-size: 0.8rem; width: 36px; }
+
+/* Detail modal sections */
+.vr-detail-section {
+  margin-bottom: 1.1rem;
+  padding-bottom: 1.1rem;
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+.vr-detail-section:last-of-type { border-bottom: none; }
+.vr-detail-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: rgba(255,255,255,0.4);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 0.35rem;
+}
+
+.vr-admin-note {
+  width: 100%;
+  padding: 0.65rem 0.9rem;
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 9px;
+  color: #fff;
+  font-size: 0.88rem;
+  resize: vertical;
+  box-sizing: border-box;
+  font-family: inherit;
+  transition: border-color 0.2s;
+}
+.vr-admin-note:focus { outline: none; border-color: rgba(167,139,250,0.4); }
+.vr-admin-note::placeholder { color: rgba(255,255,255,0.3); }
+
+.vr-modal-actions {
+  display: flex;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+  margin-top: 1.25rem;
+}
+.vr-action-btn {
+  flex: 1;
+  min-width: 120px;
+  padding: 0.6rem 1rem;
+  border-radius: 10px;
+  border: 1px solid;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.vr-action-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.vr-action-btn.reviewed {
+  background: rgba(74,222,128,0.1);
+  border-color: rgba(74,222,128,0.3);
+  color: #4ade80;
+}
+.vr-action-btn.reviewed:hover:not(:disabled) { background: rgba(74,222,128,0.2); }
+.vr-action-btn.dismissed {
+  background: rgba(148,163,184,0.1);
+  border-color: rgba(148,163,184,0.25);
+  color: #94a3b8;
+}
+.vr-action-btn.dismissed:hover:not(:disabled) { background: rgba(148,163,184,0.18); }
+.vr-action-btn.pending {
+  background: rgba(251,191,36,0.1);
+  border-color: rgba(251,191,36,0.25);
+  color: #fbbf24;
+}
+.vr-action-btn.pending:hover:not(:disabled) { background: rgba(251,191,36,0.18); }

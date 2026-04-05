@@ -9,6 +9,8 @@ const sidebarItems = [
   { path: '/admin/events', icon: '🎪', label: 'Sự kiện' },
   { path: '/admin/coupons', icon: '🎁', label: 'Mã giảm giá' },
   { path: '/admin/reports', icon: '📈', label: 'Báo cáo' },
+  { path: '/admin/violations', icon: '🚨', label: 'Vi phạm' },
+  { path: '/admin/topups',    icon: '💳', label: 'Nạp tiền' },
 ];
 
 export default function AdminLayout({ children, title, subtitle }) {

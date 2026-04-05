@@ -16,6 +16,7 @@ import CheckInPage from './pages/tickets/CheckInPage';
 // Organizer pages
 import EventFormPage from './pages/orders/OrderListPage';
 import MyEventsPage from './pages/admin/EventManagePage';
+import OrganizerRegistrationsPage from './pages/organizer/OrganizerRegistrationsPage';
 
 // Admin pages
 import DashboardPage from './pages/admin/DashboardPage';
@@ -23,6 +24,9 @@ import UserManagePage from './pages/admin/UserManagePage';
 import AdminEventManagePage from './pages/admin/AdminEventManagePage';
 import ReportsPage from './pages/admin/ReportsPage';
 import CouponManagePage from './pages/admin/CouponManagePage';
+import ViolationReportsPage from './pages/admin/ViolationReportsPage';
+import TopupManagePage from './pages/admin/TopupManagePage';
+import WalletPage from './pages/wallet/WalletPage';
 
 // Profile pages
 import ProfilePage from './pages/profile/ProfilePage';
@@ -83,6 +87,7 @@ export default function App() {
         <Route path="/organizer/my-events" element={<OrganizerRoute><MyEventsPage /></OrganizerRoute>} />
         <Route path="/organizer/events/create" element={<OrganizerRoute><EventFormPage /></OrganizerRoute>} />
         <Route path="/organizer/events/:id/edit" element={<OrganizerRoute><EventFormPage /></OrganizerRoute>} />
+        <Route path="/organizer/events/:id/registrations" element={<OrganizerRoute><OrganizerRegistrationsPage /></OrganizerRoute>} />
         <Route path="/organizer/check-in" element={<OrganizerRoute><CheckInPage /></OrganizerRoute>} />
 
         {/* Admin only */}
@@ -91,6 +96,11 @@ export default function App() {
         <Route path="/admin/events" element={<AdminRoute><AdminEventManagePage /></AdminRoute>} />
         <Route path="/admin/reports" element={<AdminRoute><ReportsPage /></AdminRoute>} />
         <Route path="/admin/coupons" element={<AdminRoute><CouponManagePage /></AdminRoute>} />
+        <Route path="/admin/violations" element={<AdminRoute><ViolationReportsPage /></AdminRoute>} />
+        <Route path="/admin/topups" element={<AdminRoute><TopupManagePage /></AdminRoute>} />
+
+        {/* Wallet */}
+        <Route path="/wallet" element={<PrivateRoute><WalletPage /></PrivateRoute>} />
 
         {/* Profile */}
         <Route path="/profile" element={<PrivateRoute><ProfilePage /></PrivateRoute>} />

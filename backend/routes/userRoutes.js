@@ -3,7 +3,8 @@ import { auth } from '../middleware/auth.js';
 import { upload } from '../middleware/upload.js';
 import {
   getMe, updateMe, changeMyPassword,
-  getMyStats, getMySaved, toggleSaveEvent, unsaveEvent
+  getMyStats, getMySaved, toggleSaveEvent, unsaveEvent,
+  requestTopup, getMyTransactions
 } from '../controllers/userController.js';
 
 const router = Router();
@@ -18,5 +19,9 @@ router.get('/me/stats', getMyStats);
 router.get('/me/saved', getMySaved);
 router.post('/me/saved/:eventId', toggleSaveEvent);
 router.delete('/me/saved/:eventId', unsaveEvent);
+
+// Wallet / Top-up
+router.post('/me/topup', requestTopup);
+router.get('/me/transactions', getMyTransactions);
 
 export default router;
