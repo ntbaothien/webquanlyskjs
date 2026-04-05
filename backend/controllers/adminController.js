@@ -2,6 +2,9 @@ import User from '../models/User.js';
 import Event from '../models/Event.js';
 import Registration from '../models/Registration.js';
 import Booking from '../models/Booking.js';
+import EventReport from '../models/EventReport.js';
+import Transaction from '../models/Transaction.js';
+import Notification from '../models/Notification.js';
 import { paginate } from '../utils/pagination.js';
 
 /**
@@ -305,6 +308,138 @@ export const getEventRegistrations = async (req, res) => {
     const enrichedBookings = bookings.map(b => ({ ...b, id: b._id, finalAmount: b.totalPrice }));
 
     res.json({ registrations: enrichedRegs, bookings: enrichedBookings });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+/**
+ * GET /api/admin/topups — list all topup requests
+ * Query: status, keyword, page, size
+ */
+export const getTopups = async (req, res) => {
+  try {
+    const { status, keyword, page, size } = req.query;
+    const filter = { type: 'TOPUP' };
+    if (status) filter.status = status;
+    if (keyword) {
+      const rx = { $regex: keyword, $options: 'i' };
+      filter.$or = [{ userName: rx }, { userEmail: rx }, { transferCode: rx }];
+    }
+
+    const result = await paginate(Transaction, filter, {
+      page, size: size || 20, sort: { createdAt: -1 }
+    });
+    const pendingCount = await Transaction.countDocuments({ type: 'TOPUP', status: 'PENDING' });
+    res.json({ ...result, pendingCount });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+/**
+ * PUT /api/admin/topups/:id — approve or reject a topup
+ * Body: { action: 'approve' | 'reject', adminNote? }
+ */
+export const processTopup = async (req, res) => {
+  try {
+    const { action, adminNote = '' } = req.body;
+    if (!['approve', 'reject'].includes(action)) {
+      return res.status(400).json({ error: 'action phải là approve hoặc reject' });
+    }
+
+    const tx = await Transaction.findById(req.params.id);
+    if (!tx) return res.status(404).json({ error: 'Không tìm thấy giao dịch' });
+    if (tx.status !== 'PENDING') {
+      return res.status(400).json({ error: 'Giao dịch này đã được xử lý rồi' });
+    }
+
+    // Do balance update BEFORE saving status (so if it fails, status stays PENDING)
+    if (action === 'approve') {
+      await User.findByIdAndUpdate(tx.userId, { $inc: { balance: tx.amount } });
+    }
+
+    tx.status      = action === 'approve' ? 'COMPLETED' : 'REJECTED';
+    tx.adminNote   = adminNote;
+    tx.processedBy = req.user._id;
+    tx.processedAt = new Date();
+    await tx.save();
+
+    // Notify user (non-critical — wrap in try/catch so it doesn't break the response)
+    try {
+      if (action === 'approve') {
+        await Notification.create({
+          userId:  tx.userId,
+          title:   'Nạp tiền thành công',
+          message: `Tài khoản của bạn đã được cộng ${tx.amount.toLocaleString('vi-VN')}đ. Số tiền sẵn sàng sử dụng ngay!`,
+          type:    'SYSTEM',
+          link:    '/wallet'
+        });
+      } else {
+        await Notification.create({
+          userId:  tx.userId,
+          title:   'Yêu cầu nạp tiền bị từ chối',
+          message: `Yêu cầu nạp ${tx.amount.toLocaleString('vi-VN')}đ (mã ${tx.transferCode}) đã bị từ chối.${adminNote ? ` Lý do: ${adminNote}` : ''}`,
+          type:    'SYSTEM',
+          link:    '/wallet'
+        });
+      }
+    } catch (notifErr) {
+      console.warn('[processTopup] Notification failed (non-critical):', notifErr.message);
+    }
+
+    res.json({ message: action === 'approve' ? 'Đã duyệt nạp tiền thành công' : 'Đã từ chối yêu cầu', transaction: tx });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+/**
+ * GET /api/admin/violations — list all violation reports
+ * Query: status, keyword, page, size
+ */
+export const getViolationReports = async (req, res) => {
+  try {
+    const { status, keyword, page, size } = req.query;
+    const filter = {};
+    if (status) filter.status = status;
+    if (keyword) {
+      const rx = { $regex: keyword, $options: 'i' };
+      filter.$or = [{ eventTitle: rx }, { reporterName: rx }, { reporterEmail: rx }];
+    }
+
+    const result = await paginate(EventReport, filter, {
+      page, size: size || 20,
+      sort: { createdAt: -1 }
+    });
+
+    // Attach pending count for badge
+    const pendingCount = await EventReport.countDocuments({ status: 'PENDING' });
+    res.json({ ...result, pendingCount });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+/**
+ * PUT /api/admin/violations/:id — update status + adminNote
+ */
+export const updateViolationReport = async (req, res) => {
+  try {
+    const { status, adminNote } = req.body;
+    const valid = ['PENDING', 'REVIEWED', 'DISMISSED'];
+    if (status && !valid.includes(status)) {
+      return res.status(400).json({ error: 'Trạng thái không hợp lệ' });
+    }
+
+    const report = await EventReport.findById(req.params.id);
+    if (!report) return res.status(404).json({ error: 'Không tìm thấy báo cáo' });
+
+    if (status) { report.status = status; report.reviewedBy = req.user._id; report.reviewedAt = new Date(); }
+    if (adminNote !== undefined) report.adminNote = adminNote;
+
+    await report.save();
+    res.json({ message: 'Cập nhật thành công', report });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

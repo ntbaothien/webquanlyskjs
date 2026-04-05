@@ -72,6 +72,7 @@ export default function ProfilePage() {
   const quickLinks = [
     user?.role === 'ATTENDEE' && { label: 'Đăng ký của tôi', icon: '🎟️', to: '/my-registrations' },
     user?.role === 'ATTENDEE' && { label: 'Sự kiện đã lưu', icon: '💾', to: '/profile/saved' },
+    user?.role === 'ATTENDEE' && { label: 'Ví tiền & Nạp tiền', icon: '💰', to: '/wallet' },
     (user?.role === 'ORGANIZER' || user?.role === 'ADMIN') && { label: 'Sự kiện của tôi', icon: '📋', to: '/organizer/my-events' },
     (user?.role === 'ORGANIZER' || user?.role === 'ADMIN') && { label: 'Tạo sự kiện', icon: '➕', to: '/organizer/events/create' },
     user?.role === 'ADMIN' && { label: 'Bảng điều khiển', icon: '📊', to: '/admin' },
@@ -112,8 +113,8 @@ export default function ProfilePage() {
           </div>
           <div className="balance-actions">
             <button className="balance-btn balance-btn-deposit"
-              onClick={() => navigate('/deposit')}>
-              ➕ Nạp tiền
+              onClick={() => navigate('/wallet')}>
+              💳 Nạp tiền
             </button>
           </div>
         </div>

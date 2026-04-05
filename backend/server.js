@@ -21,6 +21,7 @@ import profileRoutes from './routes/profileRoutes.js';
 import ticketRoutes from './routes/ticketRoutes.js';
 import userRoutes from './routes/userRoutes.js';
 import couponRoutes from './routes/couponRoutes.js';
+import shareRoutes from './routes/shareRoutes.js';
 import chatRoutes from './routes/chatRoutes.js';
 import reminderRoutes from './routes/reminderRoutes.js';
 import ChatMessage from './models/ChatMessage.js';
@@ -67,6 +68,9 @@ app.use('/api', ticketRoutes);
 app.use('/api/coupons', couponRoutes);
 app.use('/api/chat', chatRoutes);
 app.use('/api/reminders', reminderRoutes);
+
+// OG Share pages (for social media crawlers — no /api prefix so bots crawl it cleanly)
+app.use('/share', shareRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => res.json({ status: 'ok', time: new Date() }));

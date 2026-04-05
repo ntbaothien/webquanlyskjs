@@ -5,7 +5,9 @@ import {
   getDashboard, getRevenue, getReports,
   getUsers, getUserDetail, updateUser, deleteUser,
   toggleUserLock, changeUserRole,
-  getAllEvents, updateEvent, deleteEvent, getEventRegistrations
+  getAllEvents, updateEvent, deleteEvent, getEventRegistrations,
+  getViolationReports, updateViolationReport,
+  getTopups, processTopup
 } from '../controllers/adminController.js';
 
 const router = Router();
@@ -28,5 +30,13 @@ router.get('/events', getAllEvents);
 router.put('/events/:id', updateEvent);
 router.delete('/events/:id', deleteEvent);
 router.get('/events/:id/registrations', getEventRegistrations);
+
+// Top-up management
+router.get('/topups', getTopups);
+router.put('/topups/:id', processTopup);
+
+// Violation reports
+router.get('/violations', getViolationReports);
+router.put('/violations/:id', updateViolationReport);
 
 export default router;

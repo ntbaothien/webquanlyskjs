@@ -133,6 +133,7 @@ export const deleteEvent = async (req, res) => {
 
 /**
  * GET /api/organizer/events/:id/registrations
+ * Query: keyword, status, page, size, tab (registrations|bookings)
  */
 export const getEventRegistrations = async (req, res) => {
   try {
@@ -143,15 +144,92 @@ export const getEventRegistrations = async (req, res) => {
       return res.status(403).json({ error: 'Không có quyền xem' });
     }
 
-    const [registrations, bookings] = await Promise.all([
-      Registration.find({ eventId: req.params.id }).sort({ createdAt: -1 }).lean(),
-      Booking.find({ eventId: req.params.id }).sort({ createdAt: -1 }).lean()
+    const { keyword, status, page = 0, size = 20 } = req.query;
+    const pageNum = Math.max(0, parseInt(page));
+    const pageSize = Math.min(100, Math.max(1, parseInt(size)));
+
+    // Build filters
+    const regFilter = { eventId: req.params.id };
+    const bookFilter = { eventId: req.params.id };
+
+    if (keyword) {
+      const rx = { $regex: keyword, $options: 'i' };
+      regFilter.$or = [{ userFullName: rx }, { userEmail: rx }];
+      bookFilter.$or = [{ userFullName: rx }];
+    }
+    if (status) {
+      regFilter.status = status;
+      bookFilter.status = status;
+    }
+
+    const [
+      registrations, regTotal,
+      bookings, bookTotal,
+      regStats, bookStats
+    ] = await Promise.all([
+      Registration.find(regFilter).sort({ createdAt: -1 })
+        .skip(pageNum * pageSize).limit(pageSize).lean(),
+      Registration.countDocuments(regFilter),
+      Booking.find(bookFilter).sort({ createdAt: -1 })
+        .skip(pageNum * pageSize).limit(pageSize).lean(),
+      Booking.countDocuments(bookFilter),
+      // Stats for registrations (without keyword/status filter for totals)
+      Registration.aggregate([
+        { $match: { eventId: event._id } },
+        { $group: { _id: '$status', count: { $sum: 1 } } }
+      ]),
+      // Stats for bookings
+      Booking.aggregate([
+        { $match: { eventId: event._id } },
+        {
+          $group: {
+            _id: '$status',
+            count: { $sum: 1 },
+            revenue: { $sum: '$totalPrice' },
+            seats: { $sum: '$quantity' }
+          }
+        }
+      ])
     ]);
 
-    const enrichedRegs = registrations.map(r => ({ ...r, id: r._id, registeredAt: r.createdAt }));
-    const enrichedBookings = bookings.map(b => ({ ...b, id: b._id, finalAmount: b.totalPrice }));
+    // Format stats
+    const regStatsMap = Object.fromEntries(regStats.map(s => [s._id, s.count]));
+    const bookStatsMap = {};
+    let totalRevenue = 0, totalSeats = 0;
+    bookStats.forEach(s => {
+      bookStatsMap[s._id] = s.count;
+      if (s._id === 'CONFIRMED') { totalRevenue += s.revenue; totalSeats += s.seats; }
+    });
 
-    res.json({ registrations: enrichedRegs, bookings: enrichedBookings, event });
+    res.json({
+      event,
+      registrations: registrations.map(r => ({ ...r, id: r._id })),
+      regPagination: {
+        total: regTotal,
+        totalPages: Math.ceil(regTotal / pageSize),
+        page: pageNum,
+        size: pageSize
+      },
+      regStats: {
+        total: regStats.reduce((s, x) => s + x.count, 0),
+        confirmed: regStatsMap['CONFIRMED'] || 0,
+        cancelled: regStatsMap['CANCELLED'] || 0,
+      },
+      bookings: bookings.map(b => ({ ...b, id: b._id })),
+      bookPagination: {
+        total: bookTotal,
+        totalPages: Math.ceil(bookTotal / pageSize),
+        page: pageNum,
+        size: pageSize
+      },
+      bookStats: {
+        total: bookStats.reduce((s, x) => s + x.count, 0),
+        confirmed: bookStatsMap['CONFIRMED'] || 0,
+        cancelled: bookStatsMap['CANCELLED'] || 0,
+        totalRevenue,
+        totalSeats,
+      }
+    });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

@@ -4,6 +4,8 @@ import Event from '../models/Event.js';
 import Registration from '../models/Registration.js';
 import Booking from '../models/Booking.js';
 import Review from '../models/Review.js';
+import Transaction from '../models/Transaction.js';
+import Notification from '../models/Notification.js';
 
 /**
  * GET /api/users/me
@@ -144,6 +146,80 @@ export const unsaveEvent = async (req, res) => {
       $pull: { savedEvents: req.params.eventId }
     });
     res.json({ message: 'Đã bỏ lưu sự kiện' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+/**
+ * POST /api/users/me/topup — request a top-up
+ * Body: { amount, method?, note? }
+ */
+export const requestTopup = async (req, res) => {
+  try {
+    const { amount, method = 'BANK_TRANSFER', note = '' } = req.body;
+    const amt = Number(amount);
+
+    if (!amt || amt < 10000) {
+      return res.status(400).json({ error: 'Số tiền nạp tối thiểu là 10,000đ' });
+    }
+    if (amt > 50000000) {
+      return res.status(400).json({ error: 'Số tiền nạp tối đa là 50,000,000đ' });
+    }
+
+    // Generate a short unique transfer code
+    const transferCode = `EH${Date.now().toString(36).toUpperCase().slice(-6)}`;
+
+    const transaction = await Transaction.create({
+      userId:       req.user._id,
+      userName:     req.user.fullName,
+      userEmail:    req.user.email,
+      type:         'TOPUP',
+      amount:       amt,
+      status:       'PENDING',
+      method,
+      note,
+      transferCode,
+    });
+
+    res.status(201).json({ message: 'Yêu cầu nạp tiền đã được tạo. Vui lòng chuyển khoản và chờ xác nhận.', transaction });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+/**
+ * GET /api/users/me/transactions — transaction history
+ * Query: page, size, type, status
+ */
+export const getMyTransactions = async (req, res) => {
+  try {
+    const { page = 0, size = 10, type, status } = req.query;
+    const pageNum  = Math.max(0, parseInt(page));
+    const pageSize = Math.min(50, Math.max(1, parseInt(size)));
+
+    const filter = { userId: req.user._id };
+    if (type)   filter.type   = type;
+    if (status) filter.status = status;
+
+    const [transactions, total, user] = await Promise.all([
+      Transaction.find(filter)
+        .sort({ createdAt: -1 })
+        .skip(pageNum * pageSize)
+        .limit(pageSize)
+        .lean(),
+      Transaction.countDocuments(filter),
+      User.findById(req.user._id).select('balance').lean()
+    ]);
+
+    res.json({
+      content: transactions,
+      totalPages: Math.ceil(total / pageSize),
+      totalElements: total,
+      page: pageNum,
+      size: pageSize,
+      balance: user?.balance || 0
+    });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
