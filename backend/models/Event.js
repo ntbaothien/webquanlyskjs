@@ -33,7 +33,12 @@ const eventSchema = new mongoose.Schema({
   isFeatured: { type: Boolean, default: false },
   organizerId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   organizerName: { type: String, default: '' },
-  seatZones: [seatZoneSchema]
+  seatZones: [seatZoneSchema],
+  emailReminders: {
+    sent24h: { type: Boolean, default: false },
+    sent1h: { type: Boolean, default: false },
+    lastReminderSent: { type: Date, default: null }
+  }
 }, { timestamps: true });
 
 // Text index for search

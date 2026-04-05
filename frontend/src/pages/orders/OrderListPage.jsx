@@ -134,10 +134,23 @@ export default function EventFormPage() {
               </div>
               <div className="form-group">
                 <label>Trạng thái</label>
-                <select value={form.status} onChange={f('status')}>
-                  <option value="DRAFT">DRAFT</option>
-                  <option value="PUBLISHED">PUBLISHED</option>
-                  <option value="CANCELLED">CANCELLED</option>
+                <select 
+                  value={form.status} 
+                  onChange={f('status')}
+                  style={{
+                    width: '100%',
+                    padding: '0.75rem',
+                    borderRadius: '10px',
+                    backgroundColor: 'rgba(26, 26, 46, 0.8)',
+                    color: '#fff',
+                    border: '1px solid rgba(255,255,255,0.2)',
+                    fontSize: '1rem',
+                    cursor: 'pointer'
+                  }}
+                >
+                  <option style={{ backgroundColor: '#1a1a2e', color: '#fff' }} value="DRAFT">📝 DRAFT (Nháp)</option>
+                  <option style={{ backgroundColor: '#1a1a2e', color: '#fff' }} value="PUBLISHED">✅ PUBLISHED (Công khai)</option>
+                  <option style={{ backgroundColor: '#1a1a2e', color: '#fff' }} value="CANCELLED">❌ CANCELLED (Hủy)</option>
                 </select>
               </div>
             </div>

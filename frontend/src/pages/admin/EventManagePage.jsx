@@ -84,6 +84,7 @@ export default function MyEventsPage() {
                     <td style={{ display: 'flex', gap: '0.4rem' }}>
                       <Link to={`/organizer/events/${e.id}/edit`} className="btn-sm btn-info" style={{ textDecoration: 'none' }}>✏️ Sửa</Link>
                       <Link to={`/organizer/events/${e.id}/registrations`} className="btn-sm btn-success" style={{ textDecoration: 'none' }}>👥</Link>
+                      <Link to={`/organizer/events/${e.id}/emails`} className="btn-sm btn-info" style={{ textDecoration: 'none' }}>📧 Email</Link>
                       <button className="btn-sm btn-danger" onClick={() => handleDelete(e.id)}>🗑</button>
                     </td>
                   </tr>

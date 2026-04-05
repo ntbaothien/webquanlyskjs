@@ -56,6 +56,11 @@ export default function LoginPage() {
             <input type="password" placeholder="••••••••" value={form.password}
               onChange={e => setForm({ ...form, password: e.target.value })} required />
           </div>
+          <div style={{ textAlign: 'right', marginBottom: '16px' }}>
+            <Link to="/forgot-password" style={{ color: '#a78bfa', fontSize: '13px', textDecoration: 'none' }}>
+              Quên mật khẩu?
+            </Link>
+          </div>
           <button className="btn-primary" type="submit" disabled={isLoading}>
             {isLoading ? 'Đang đăng nhập...' : 'Đăng nhập'}
           </button>

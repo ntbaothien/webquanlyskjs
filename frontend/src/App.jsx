@@ -4,6 +4,8 @@ import useAuthStore from './store/authStore';
 // Auth pages
 import LoginPage from './pages/auth/LoginPage';
 import RegisterPage from './pages/auth/RegisterPage';
+import ForgotPasswordPage from './pages/auth/ForgotPasswordPage';
+import ResetPasswordPage from './pages/auth/ResetPasswordPage';
 
 // Public / Attendee pages
 import EventListPage from './pages/events/EventListPage';
@@ -16,6 +18,7 @@ import CheckInPage from './pages/tickets/CheckInPage';
 // Organizer pages
 import EventFormPage from './pages/orders/OrderListPage';
 import MyEventsPage from './pages/admin/EventManagePage';
+import EventEmailRemindersPage from './pages/admin/EventEmailRemindersPage';
 
 // Admin pages
 import DashboardPage from './pages/admin/DashboardPage';
@@ -70,10 +73,13 @@ export default function App() {
         {/* Public Auth */}
         <Route path="/login" element={<PublicRoute><LoginPage /></PublicRoute>} />
         <Route path="/register" element={<PublicRoute><RegisterPage /></PublicRoute>} />
+        <Route path="/forgot-password" element={<PublicRoute><ForgotPasswordPage /></PublicRoute>} />
+        <Route path="/reset-password/:token" element={<PublicRoute><ResetPasswordPage /></PublicRoute>} />
 
         {/* Public Event Pages */}
         <Route path="/" element={<EventListPage />} />
         <Route path="/events/:id" element={<EventDetailPage />} />
+        <Route path="/organizer/events/:eventId/emails" element={<OrganizerRoute><EventEmailRemindersPage /></OrganizerRoute>} />
 
         {/* Attendee-only */}
         <Route path="/my-registrations" element={<PrivateRoute><MyTicketsPage /></PrivateRoute>} />
@@ -85,6 +91,7 @@ export default function App() {
         <Route path="/organizer/my-events" element={<OrganizerRoute><MyEventsPage /></OrganizerRoute>} />
         <Route path="/organizer/events/create" element={<OrganizerRoute><EventFormPage /></OrganizerRoute>} />
         <Route path="/organizer/events/:id/edit" element={<OrganizerRoute><EventFormPage /></OrganizerRoute>} />
+        <Route path="/organizer/events/:id/emails" element={<OrganizerRoute><EventEmailRemindersPage /></OrganizerRoute>} />
         <Route path="/organizer/check-in" element={<OrganizerRoute><CheckInPage /></OrganizerRoute>} />
 
         {/* Admin only */}
