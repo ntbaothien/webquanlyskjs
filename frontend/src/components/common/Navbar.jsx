@@ -3,6 +3,8 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import useAuthStore from '../../store/authStore';
 import useThemeStore from '../../store/themeStore';
+import axiosInstance from '../../utils/axiosInstance';
+import NotificationBell from './NotificationBell';
 import './Navbar.css';
 
 export default function Navbar() {
@@ -87,14 +89,17 @@ export default function Navbar() {
 
           <div className="navbar-auth">
             {user ? (
-              <div className="navbar-user">
-                <span className="user-name"
-                  onClick={() => { navigate('/profile'); setMenuOpen(false); }}
-                  style={{ cursor: 'pointer' }}>
-                  👤 {user.fullName}
-                </span>
-                <span className={`role-badge role-${user.role.toLowerCase()}`}>{user.role}</span>
-                <button className="btn-logout" onClick={logout}>{t('nav.logout')}</button>
+              <div className="navbar-controls">
+                <NotificationBell />
+                <div className="navbar-user">
+                  <span className="user-name"
+                    onClick={() => { navigate('/profile'); setMenuOpen(false); }}
+                    style={{ cursor: 'pointer' }}>
+                    👤 {user.fullName}
+                  </span>
+                  <span className={`role-badge role-${user.role.toLowerCase()}`}>{user.role}</span>
+                  <button className="btn-logout" onClick={logout}>{t('nav.logout')}</button>
+                </div>
               </div>
             ) : (
               <div className="navbar-guest">

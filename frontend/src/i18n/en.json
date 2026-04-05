@@ -193,6 +193,9 @@
     "savedEvent": "Saved",
     "saveEvent": "Save Event",
     "zonesTickets": "Zones & Ticket Prices",
+    "tabInfo": "Info",
+    "tabForum": "Forum",
+    "tabPolls": "Polls",
     "onlySeatsLeft": "Only {count} seats left!",
     "seatsAvailable": "{available} / {total} seats available",
     "eventDescription": "Event Description",
@@ -210,6 +213,8 @@
     "onEventHub": "on EventHub!",
     "copied": "Copied!",
     "copyLink": "Copy link",
+    "notifyMe": "Notify me when a seat opens",
+    "onWaitlist": "Subscribed for alerts 🔔",
     "registrationFailed": "Registration failed",
     "submittingReview": "Submitting review...",
     "reviewSubmissionFailed": "Review submission failed"

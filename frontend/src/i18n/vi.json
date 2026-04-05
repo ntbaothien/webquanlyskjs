@@ -193,6 +193,9 @@
     "savedEvent": "Đã lưu",
     "saveEvent": "Lưu sự kiện",
     "zonesTickets": "Khu vực & Giá vé",
+    "tabInfo": "Thông tin",
+    "tabForum": "Diễn đàn",
+    "tabPolls": "Bình chọn",
     "onlySeatsLeft": "Chỉ còn {count} ghế!",
     "seatsAvailable": "Còn {available} / {total} ghế",
     "eventDescription": "Mô tả sự kiện",
@@ -210,6 +213,8 @@
     "onEventHub": "trên EventHub!",
     "copied": "Đã copy!",
     "copyLink": "Copy link",
+    "notifyMe": "Thông báo cho tôi khi có ghế trống",
+    "onWaitlist": "Đã đăng ký nhận thông báo 🔔",
     "registrationFailed": "Đăng ký thất bại",
     "submittingReview": "Đang gửi đánh giá...",
     "reviewSubmissionFailed": "Đánh giá thất bại"

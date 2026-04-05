@@ -21,9 +21,12 @@ import profileRoutes from './routes/profileRoutes.js';
 import ticketRoutes from './routes/ticketRoutes.js';
 import userRoutes from './routes/userRoutes.js';
 import couponRoutes from './routes/couponRoutes.js';
-import shareRoutes from './routes/shareRoutes.js';
 import chatRoutes from './routes/chatRoutes.js';
 import reminderRoutes from './routes/reminderRoutes.js';
+import resourceRoutes from './routes/resourceRoutes.js';
+import forumRoutes from './routes/forumRoutes.js';
+import pollRoutes from './routes/pollRoutes.js';
+import notificationRoutes from './routes/notificationRoutes.js';
 import ChatMessage from './models/ChatMessage.js';
 import { getBotReply } from './utils/aiBot.js';
 
@@ -68,9 +71,10 @@ app.use('/api', ticketRoutes);
 app.use('/api/coupons', couponRoutes);
 app.use('/api/chat', chatRoutes);
 app.use('/api/reminders', reminderRoutes);
-
-// OG Share pages (for social media crawlers — no /api prefix so bots crawl it cleanly)
-app.use('/share', shareRoutes);
+app.use('/api/resources', resourceRoutes);
+app.use('/api/forum', forumRoutes);
+app.use('/api/polls', pollRoutes);
+app.use('/api/notifications', notificationRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => res.json({ status: 'ok', time: new Date() }));
