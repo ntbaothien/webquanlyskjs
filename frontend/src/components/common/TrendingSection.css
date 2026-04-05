@@ -101,3 +101,25 @@
 @media (max-width: 600px) {
   .trending-grid { grid-template-columns: 1fr; }
 }
+
+/* ========== LIGHT THEME OVERRIDES ========== */
+[data-theme="light"] .trending-header h2,
+[data-theme="light"] .trending-info h4 {
+  color: var(--text-primary);
+}
+
+[data-theme="light"] .trending-header p,
+[data-theme="light"] .trending-meta {
+  color: var(--text-secondary);
+}
+
+[data-theme="light"] .trending-card {
+  background: var(--bg-card);
+  border-color: var(--border);
+}
+
+[data-theme="light"] .trending-card:hover {
+  background: var(--bg-hover);
+  border-color: var(--purple);
+  box-shadow: var(--shadow);
+}

@@ -1,16 +1,18 @@
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { getImageUrl } from '../../utils/getImageUrl';
 import './TrendingSection.css';
 
 export default function TrendingSection({ events = [] }) {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   if (!events.length) return null;
 
   return (
     <section className="trending-section">
       <div className="trending-header">
-        <h2>🔥 Sự Kiện Nổi Bật</h2>
-        <p>Những sự kiện được quan tâm nhiều nhất</p>
+        <h2>🔥 {t('events.trendingTitle', 'Sự Kiện Nổi Bật')}</h2>
+        <p>{t('events.trendingDesc', 'Những sự kiện được quan tâm nhiều nhất')}</p>
       </div>
       <div className="trending-grid">
         {events.slice(0, 6).map((event, idx) => {
@@ -33,9 +35,9 @@ export default function TrendingSection({ events = [] }) {
               <div className="trending-info">
                 <h4>{event.title}</h4>
                 <span className="trending-meta">📍 {event.location}</span>
-                <span className="trending-meta">👥 {event.currentAttendees || 0} người tham gia</span>
+                <span className="trending-meta">👥 {event.currentAttendees || 0} {t('events.participants', 'người tham gia')}</span>
                 <span className="trending-price">
-                  {event.free === false ? '💳 Có phí' : '🆓 Miễn phí'}
+                  {event.free === false ? `💳 ${t('events.paid', 'Có phí')}` : `🆓 ${t('events.free', 'Miễn phí')}`}
                 </span>
               </div>
             </div>

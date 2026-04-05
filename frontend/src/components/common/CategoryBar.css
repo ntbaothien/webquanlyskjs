@@ -83,3 +83,22 @@
     border-radius: 10px;
   }
 }
+
+/* ========== LIGHT THEME OVERRIDES ========== */
+[data-theme="light"] .category-chip {
+  background: var(--bg-card);
+  color: var(--text-secondary);
+  border-color: var(--border);
+}
+
+[data-theme="light"] .category-chip:hover {
+  border-color: var(--purple);
+  color: var(--text-primary);
+  box-shadow: var(--shadow);
+}
+
+[data-theme="light"] .category-chip.active {
+  background: var(--purple-light);
+  color: var(--purple-hover);
+  border-color: var(--purple);
+}

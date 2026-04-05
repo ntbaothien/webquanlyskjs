@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { getImageUrl } from '../../utils/getImageUrl';
 import './HeroBanner.css';
 
 export default function HeroBanner({ events = [] }) {
   const [current, setCurrent] = useState(0);
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const slides = events.slice(0, 5);
 
   useEffect(() => {
@@ -33,13 +35,13 @@ export default function HeroBanner({ events = [] }) {
               }}
             >
               <div className="hero-slide-content">
-                <span className="hero-badge">{event.free === false ? '💳 Có phí' : '🆓 Miễn phí'}</span>
+                <span className="hero-badge">{event.free === false ? `💳 ${t('events.paid', 'Có phí')}` : `🆓 ${t('events.free', 'Miễn phí')}`}</span>
                 <h2>{event.title}</h2>
                 <div className="hero-meta">
                   <span>📍 {event.location}</span>
-                  <span>📅 {event.startDate ? new Date(event.startDate).toLocaleDateString('vi-VN') : '—'}</span>
+                  <span>📅 {event.startDate ? new Date(event.startDate).toLocaleDateString() : '—'}</span>
                 </div>
-                <button className="hero-cta">Xem chi tiết →</button>
+                <button className="hero-cta">{t('events.viewDetail', 'Xem chi tiết')} →</button>
               </div>
             </div>
           );

@@ -4,6 +4,8 @@ import useAuthStore from './store/authStore';
 // Auth pages
 import LoginPage from './pages/auth/LoginPage';
 import RegisterPage from './pages/auth/RegisterPage';
+import ForgotPasswordPage from './pages/auth/ForgotPasswordPage';
+import ResetPasswordPage from './pages/auth/ResetPasswordPage';
 
 // Public / Attendee pages
 import EventListPage from './pages/events/EventListPage';
@@ -17,6 +19,7 @@ import CheckInPage from './pages/tickets/CheckInPage';
 import EventFormPage from './pages/orders/OrderListPage';
 import MyEventsPage from './pages/admin/EventManagePage';
 import OrganizerRegistrationsPage from './pages/organizer/OrganizerRegistrationsPage';
+import EventEmailRemindersPage from './pages/admin/EventEmailRemindersPage';
 
 // Admin pages
 import DashboardPage from './pages/admin/DashboardPage';
@@ -38,6 +41,7 @@ import NotFoundPage from './pages/errors/NotFoundPage';
 // Common components
 import Footer from './components/common/Footer';
 import ToastContainer from './components/common/Toast';
+import ChatBox from './components/common/ChatBox';
 
 // ---- Guards ----
 const PrivateRoute = ({ children }) => {
@@ -68,14 +72,18 @@ export default function App() {
   return (
     <BrowserRouter>
       <ToastContainer />
+      <ChatBox />
       <Routes>
         {/* Public Auth */}
         <Route path="/login" element={<PublicRoute><LoginPage /></PublicRoute>} />
         <Route path="/register" element={<PublicRoute><RegisterPage /></PublicRoute>} />
+        <Route path="/forgot-password" element={<PublicRoute><ForgotPasswordPage /></PublicRoute>} />
+        <Route path="/reset-password/:token" element={<PublicRoute><ResetPasswordPage /></PublicRoute>} />
 
         {/* Public Event Pages */}
         <Route path="/" element={<EventListPage />} />
         <Route path="/events/:id" element={<EventDetailPage />} />
+        <Route path="/organizer/events/:eventId/emails" element={<OrganizerRoute><EventEmailRemindersPage /></OrganizerRoute>} />
 
         {/* Attendee-only */}
         <Route path="/my-registrations" element={<PrivateRoute><MyTicketsPage /></PrivateRoute>} />

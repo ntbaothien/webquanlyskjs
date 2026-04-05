@@ -1,44 +1,47 @@
+import { useTranslation } from 'react-i18next';
 import './Footer.css';
 
 export default function Footer() {
+  const { t } = useTranslation();
+
   return (
     <footer className="site-footer">
       <div className="footer-inner">
         <div className="footer-col">
-          <h4>🎪 EventHub</h4>
-          <p>Nền tảng quản lý và khám phá sự kiện hàng đầu. Tìm kiếm, đặt vé và trải nghiệm những sự kiện tuyệt vời.</p>
+          <h4>{t('footer.title')}</h4>
+          <p>{t('footer.description')}</p>
         </div>
         <div className="footer-col">
-          <h4>Khám phá</h4>
+          <h4>{t('footer.explore')}</h4>
           <ul>
-            <li><a href="/">Tất cả sự kiện</a></li>
-            <li><a href="/?tag=Music">Âm nhạc</a></li>
-            <li><a href="/?tag=Sports">Thể thao</a></li>
-            <li><a href="/?tag=Workshop">Workshop</a></li>
+            <li><a href="/">{t('footer.allEvents')}</a></li>
+            <li><a href="/?tag=Music">{t('footer.music')}</a></li>
+            <li><a href="/?tag=Sports">{t('footer.sports')}</a></li>
+            <li><a href="/?tag=Workshop">{t('footer.workshop')}</a></li>
           </ul>
         </div>
         <div className="footer-col">
-          <h4>Hỗ trợ</h4>
+          <h4>{t('footer.support')}</h4>
           <ul>
-            <li><a href="#">Câu hỏi thường gặp</a></li>
-            <li><a href="#">Chính sách hoàn vé</a></li>
-            <li><a href="#">Điều khoản sử dụng</a></li>
-            <li><a href="#">Liên hệ</a></li>
+            <li><a href="#">{t('footer.faq')}</a></li>
+            <li><a href="#">{t('footer.refundPolicy')}</a></li>
+            <li><a href="#">{t('footer.termsOfUse')}</a></li>
+            <li><a href="#">{t('footer.contactUs')}</a></li>
           </ul>
         </div>
         <div className="footer-col">
-          <h4>Kết nối</h4>
+          <h4>{t('footer.connect')}</h4>
           <div className="footer-socials">
-            <a href="#" title="Facebook">📘</a>
-            <a href="#" title="Instagram">📸</a>
-            <a href="#" title="TikTok">🎵</a>
-            <a href="#" title="Email">📧</a>
+            <a href="#" title={t('footer.facebook')}>📘</a>
+            <a href="#" title={t('footer.instagram')}>📸</a>
+            <a href="#" title={t('footer.tiktok')}>🎵</a>
+            <a href="#" title={t('footer.email')}>📧</a>
           </div>
-          <p className="footer-hours">Hỗ trợ: 8:00 – 22:00 hàng ngày</p>
+          <p className="footer-hours">{t('footer.hours')}</p>
         </div>
       </div>
       <div className="footer-bottom">
-        <p>© {new Date().getFullYear()} EventHub. All rights reserved.</p>
+        <p>{t('footer.rights')}</p>
       </div>
     </footer>
   );
