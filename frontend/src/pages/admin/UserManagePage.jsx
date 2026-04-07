@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import axiosInstance from '../../utils/axiosInstance';
 import AdminLayout from '../../components/admin/AdminLayout';
 import useAuthStore from '../../store/authStore';
@@ -6,6 +7,8 @@ import { Lock, Unlock } from 'lucide-react';
 import './Admin.css';
 
 export default function UserManagePage() {
+  const { t, i18n } = useTranslation();
+  const locale = i18n.language === 'vi' ? 'vi-VN' : 'en-US';
   const currentUser = useAuthStore((s) => s.user);
   const [data, setData] = useState({ content: [], totalPages: 0, totalElements: 0 });
   const [filters, setFilters] = useState({ keyword: '', role: '', page: 0 });
@@ -40,10 +43,10 @@ export default function UserManagePage() {
     if (isSelfOrAdmin(user)) return;
     try {
       await axiosInstance.post(`/admin/users/${user.id}/toggle`);
-      showMsg('Đã cập nhật trạng thái tài khoản');
+      showMsg(t('admin.statusUpdated'));
       fetchUsers();
     } catch (err) {
-      showMsg(err.response?.data?.error || 'Thao tác thất bại', 'error');
+      showMsg(err.response?.data?.error || t('admin.actionFailed'), 'error');
     }
   };
 
@@ -51,10 +54,10 @@ export default function UserManagePage() {
     if (isSelfOrAdmin(user)) return;
     try {
       await axiosInstance.post(`/admin/users/${id}/role`, null, { params: { role } });
-      showMsg('Đã đổi quyền thành công');
+      showMsg(t('admin.roleChanged'));
       fetchUsers();
     } catch (err) {
-      showMsg(err.response?.data?.error || 'Thao tác thất bại', 'error');
+      showMsg(err.response?.data?.error || t('admin.actionFailed'), 'error');
     }
   };
 
@@ -77,7 +80,7 @@ export default function UserManagePage() {
   const getInitial = (name) => name ? name.charAt(0).toUpperCase() : '?';
 
   return (
-    <AdminLayout title="👥 Quản lý người dùng" subtitle={`Tổng cộng ${data.totalElements || 0} người dùng`}>
+    <AdminLayout title={`👥 ${t('admin.userManage')}`} subtitle={t('admin.userManageSub', { count: data.totalElements || 0 })}>
       {/* Message */}
       {msg.text && <div className={`admin-msg ${msg.type}`}>{msg.type === 'success' ? '✅' : '❌'} {msg.text}</div>}
 
@@ -85,7 +88,7 @@ export default function UserManagePage() {
       <form className="admin-filter-bar" onSubmit={search}>
         <input
           className="admin-search-input"
-          placeholder="🔍 Tìm theo tên hoặc email..."
+          placeholder={`🔍 ${t('admin.searchUser')}`}
           value={filters.keyword}
           onChange={e => setFilters({ ...filters, keyword: e.target.value })}
         />
@@ -94,30 +97,30 @@ export default function UserManagePage() {
           value={filters.role}
           onChange={e => { const nf = { ...filters, role: e.target.value, page: 0 }; setFilters(nf); fetchUsers(nf); }}
         >
-          <option value="">Tất cả vai trò</option>
+          <option value="">{t('admin.allRoles')}</option>
           <option value="ATTENDEE">ATTENDEE</option>
           <option value="ORGANIZER">ORGANIZER</option>
           <option value="ADMIN">ADMIN</option>
         </select>
-        <button className="admin-filter-btn" type="submit">Tìm kiếm</button>
+        <button className="admin-filter-btn" type="submit">{t('admin.search')}</button>
       </form>
 
       {/* Users Table */}
       {loading ? (
-        <div className="admin-loading">⏳ Đang tải...</div>
+        <div className="admin-loading">⏳ {t('common.loading')}</div>
       ) : data.content.length === 0 ? (
-        <div className="admin-empty-state">😔 Không tìm thấy người dùng nào</div>
+        <div className="admin-empty-state">😔 {t('admin.noUsers')}</div>
       ) : (
         <div className="admin-table-card">
           <table className="admin-table">
             <thead>
               <tr>
-                <th>Người dùng</th>
-                <th>Email</th>
-                <th>Vai trò</th>
-                <th>Trạng thái</th>
-                <th>Ngày tạo</th>
-                <th>Thao tác</th>
+                <th>{t('admin.user')}</th>
+                <th>{t('admin.email')}</th>
+                <th>{t('admin.role')}</th>
+                <th>{t('admin.status')}</th>
+                <th>{t('admin.createdAt')}</th>
+                <th>{t('admin.actions')}</th>
               </tr>
             </thead>
             <tbody>
@@ -128,7 +131,7 @@ export default function UserManagePage() {
                       <div className={`admin-avatar ${u.role?.toLowerCase()}`}>
                         {getInitial(u.fullName)}
                       </div>
-                      <strong style={{ color: '#fff' }}>{u.fullName}</strong>
+                      <strong style={{ color: 'var(--admin-text)' }}>{u.fullName}</strong>
                     </div>
                   </td>
                   <td>{u.email}</td>
@@ -150,27 +153,27 @@ export default function UserManagePage() {
                   </td>
                   <td>
                     {isSelfOrAdmin(u) ? (
-                      <span style={{ color: '#86efac', fontWeight: 600, fontSize: '0.82rem' }}>✅ Hoạt động</span>
+                      <span style={{ color: '#86efac', fontWeight: 600, fontSize: '0.82rem' }}>✅ {t('admin.active')}</span>
                     ) : (
                       <button
                         className={`admin-btn ${u.enabled ? 'admin-btn-danger' : 'admin-btn-success'}`}
                         onClick={() => handleToggle(u)}
-                        title={u.enabled ? 'Khóa tài khoản' : 'Mở khóa tài khoản'}
+                        title={u.enabled ? t('admin.lockAccount') : t('admin.unlockAccount')}
                         style={{ padding: '0.4rem 0.8rem', fontSize: '0.8rem', minWidth: 'auto' }}
                       >
                         {u.enabled ? <Lock size={14} /> : <Unlock size={14} />}
                         <span style={{ marginLeft: '0.3rem' }}>
-                          {u.enabled ? 'Khóa' : 'Mở khóa'}
+                          {u.enabled ? t('admin.lock') : t('admin.unlock')}
                         </span>
                       </button>
                     )}
                   </td>
-                  <td style={{ fontSize: '0.82rem', color: 'rgba(255,255,255,0.5)' }}>
-                    {u.createdAt ? new Date(u.createdAt).toLocaleDateString('vi-VN') : '—'}
+                  <td style={{ fontSize: '0.82rem', color: 'var(--admin-text-muted)' }}>
+                    {u.createdAt ? new Date(u.createdAt).toLocaleDateString(locale) : '—'}
                   </td>
                   <td>
                     <button className="admin-btn admin-btn-info" onClick={() => handleViewDetail(u.id)}>
-                      Chi tiết
+                      {t('admin.details')}
                     </button>
                   </td>
                 </tr>
@@ -225,12 +228,12 @@ export default function UserManagePage() {
         <div className="admin-modal-overlay" onClick={() => setDetailUser(null)}>
           <div className="admin-modal" onClick={e => e.stopPropagation()}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
-              <h2 style={{ margin: 0 }}>👤 Chi tiết người dùng</h2>
+              <h2 style={{ margin: 0 }}>👤 {t('admin.userDetails')}</h2>
               <button className="admin-modal-close" onClick={() => setDetailUser(null)}>✕</button>
             </div>
 
             {detailLoading ? (
-              <div className="admin-loading">⏳ Đang tải...</div>
+              <div className="admin-loading">⏳ {t('common.loading')}</div>
             ) : (
               <>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1.5rem' }}>
@@ -238,32 +241,32 @@ export default function UserManagePage() {
                     {getInitial(detailUser.user?.fullName)}
                   </div>
                   <div>
-                    <div style={{ color: '#fff', fontWeight: 700, fontSize: '1.1rem' }}>{detailUser.user?.fullName}</div>
-                    <div style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.85rem' }}>{detailUser.user?.email}</div>
+                    <div style={{ color: 'var(--admin-text)', fontWeight: 700, fontSize: '1.1rem' }}>{detailUser.user?.fullName}</div>
+                    <div style={{ color: 'var(--admin-text-muted)', fontSize: '0.85rem' }}>{detailUser.user?.email}</div>
                   </div>
                 </div>
                 <div className="admin-info-row">
-                  <span className="admin-info-label">Vai trò</span>
+                  <span className="admin-info-label">{t('admin.role')}</span>
                   <span className={`admin-role-badge ${detailUser.user?.role?.toLowerCase()}`}>{detailUser.user?.role}</span>
                 </div>
                 <div className="admin-info-row">
-                  <span className="admin-info-label">Trạng thái</span>
+                  <span className="admin-info-label">{t('admin.status')}</span>
                   <span className="admin-info-value" style={{ color: detailUser.user?.enabled ? '#86efac' : '#fca5a5' }}>
-                    {detailUser.user?.enabled ? '✅ Hoạt động' : '🔒 Bị khóa'}
+                    {detailUser.user?.enabled ? `✅ ${t('admin.active')}` : `🔒 ${t('admin.locked')}`}
                   </span>
                 </div>
                 <div className="admin-info-row">
-                  <span className="admin-info-label">Sự kiện đã tạo</span>
+                  <span className="admin-info-label">{t('admin.eventsCreated')}</span>
                   <span className="admin-info-value">{detailUser.eventsCreated ?? 0}</span>
                 </div>
                 <div className="admin-info-row">
-                  <span className="admin-info-label">Lần đăng ký tham dự</span>
+                  <span className="admin-info-label">{t('admin.timesRegistered')}</span>
                   <span className="admin-info-value">{detailUser.registrations ?? 0}</span>
                 </div>
                 <div className="admin-info-row" style={{ border: 'none' }}>
-                  <span className="admin-info-label">Ngày tạo tài khoản</span>
+                  <span className="admin-info-label">{t('admin.accountCreated')}</span>
                   <span className="admin-info-value">
-                    {detailUser.user?.createdAt ? new Date(detailUser.user.createdAt).toLocaleDateString('vi-VN') : '—'}
+                    {detailUser.user?.createdAt ? new Date(detailUser.user.createdAt).toLocaleDateString(locale) : '—'}
                   </span>
                 </div>
               </>

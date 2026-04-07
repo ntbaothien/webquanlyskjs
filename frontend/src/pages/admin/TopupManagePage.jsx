@@ -1,24 +1,27 @@
 import { useState, useEffect, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import axiosInstance from '../../utils/axiosInstance';
 import AdminLayout from '../../components/admin/AdminLayout';
 import './Admin.css';
 
-const STATUS_CONFIG = {
-  PENDING:   { label: 'Chờ duyệt',   color: '#fbbf24', bg: 'rgba(251,191,36,0.12)' },
-  COMPLETED: { label: 'Đã duyệt',    color: '#4ade80', bg: 'rgba(74,222,128,0.12)' },
-  REJECTED:  { label: 'Từ chối',     color: '#f87171', bg: 'rgba(248,113,113,0.12)' },
+const STATUS_COLORS = {
+  PENDING:   { color: '#fbbf24', bg: 'rgba(251,191,36,0.12)' },
+  COMPLETED: { color: '#4ade80', bg: 'rgba(74,222,128,0.12)' },
+  REJECTED:  { color: '#f87171', bg: 'rgba(248,113,113,0.12)' },
 };
 
-function StatusBadge({ status }) {
-  const c = STATUS_CONFIG[status] || STATUS_CONFIG.PENDING;
+function StatusBadge({ status, label }) {
+  const c = STATUS_COLORS[status] || STATUS_COLORS.PENDING;
   return (
     <span style={{ fontSize: '0.75rem', fontWeight: 600, padding: '0.2rem 0.55rem', borderRadius: '6px', color: c.color, background: c.bg, whiteSpace: 'nowrap' }}>
-      {c.label}
+      {label}
     </span>
   );
 }
 
 export default function TopupManagePage() {
+  const { t, i18n } = useTranslation();
+  const locale = i18n.language === 'vi' ? 'vi-VN' : 'en-US';
   const [data, setData]           = useState({ content: [], totalPages: 0, totalElements: 0, pendingCount: 0 });
   const [filters, setFilters]     = useState({ keyword: '', status: 'PENDING', page: 0 });
   const [loading, setLoading]     = useState(true);
@@ -68,28 +71,35 @@ export default function TopupManagePage() {
         action: actionModal.action,
         adminNote
       });
-      showMsg(actionModal.action === 'approve' ? '✅ Đã duyệt nạp tiền thành công!' : '❌ Đã từ chối yêu cầu');
+      showMsg(actionModal.action === 'approve' ? `✅ ${t('admin.approveSuccess')}` : `❌ ${t('admin.rejectSuccess')}`);
       setActionModal(null);
       setAdminNote('');
       fetchTopups();
     } catch (err) {
-      showMsg(err.response?.data?.error || 'Thao tác thất bại', 'error');
+      showMsg(err.response?.data?.error || t('admin.actionFailed'), 'error');
     } finally {
       setSaving(false);
     }
   };
 
   const statusTabs = [
-    { value: 'PENDING',   label: 'Chờ duyệt',  showCount: true },
-    { value: '',          label: 'Tất cả',      showCount: false },
-    { value: 'COMPLETED', label: 'Đã duyệt',   showCount: false },
-    { value: 'REJECTED',  label: 'Từ chối',     showCount: false },
+    { value: 'PENDING',   label: t('admin.pendingApproval'), showCount: true },
+    { value: '',          label: t('admin.allTopups'),        showCount: false },
+    { value: 'COMPLETED', label: t('admin.approved'),         showCount: false },
+    { value: 'REJECTED',  label: t('admin.rejected'),         showCount: false },
   ];
+
+  const getStatusLabel = (status) => {
+    if (status === 'PENDING')   return t('admin.pendingApproval');
+    if (status === 'COMPLETED') return t('admin.approved');
+    if (status === 'REJECTED')  return t('admin.rejected');
+    return status;
+  };
 
   return (
     <AdminLayout
-      title="💳 Quản lý nạp tiền"
-      subtitle={`${data.pendingCount} yêu cầu chờ duyệt · ${data.totalElements} tổng`}
+      title={`💳 ${t('admin.topupManage')}`}
+      subtitle={t('admin.topupSub', { pending: data.pendingCount, total: data.totalElements })}
     >
       {msg.text && (
         <div className={`admin-msg ${msg.type}`}>
@@ -99,12 +109,12 @@ export default function TopupManagePage() {
 
       {/* ── Tabs ── */}
       <div className="vr-tabs">
-        {statusTabs.map(t => (
-          <button key={t.value}
-            className={`vr-tab ${filters.status === t.value ? 'active' : ''}`}
-            onClick={() => handleStatusFilter(t.value)}>
-            {t.label}
-            {t.showCount && data.pendingCount > 0 && (
+        {statusTabs.map(tab => (
+          <button key={tab.value}
+            className={`vr-tab ${filters.status === tab.value ? 'active' : ''}`}
+            onClick={() => handleStatusFilter(tab.value)}>
+            {tab.label}
+            {tab.showCount && data.pendingCount > 0 && (
               <span className="vr-tab-badge urgent">{data.pendingCount}</span>
             )}
           </button>
@@ -120,7 +130,7 @@ export default function TopupManagePage() {
           </svg>
           <input className="admin-search-input"
             style={{ paddingLeft: '2.2rem', width: '100%', boxSizing: 'border-box' }}
-            placeholder="Tìm theo tên, email, mã giao dịch..."
+            placeholder={t('admin.searchTopup')}
             value={filters.keyword}
             onChange={e => handleKeyword(e.target.value)} />
         </div>
@@ -128,11 +138,11 @@ export default function TopupManagePage() {
 
       {/* ── Table ── */}
       {loading ? (
-        <div className="admin-loading">⏳ Đang tải...</div>
+        <div className="admin-loading">⏳ {t('common.loading')}</div>
       ) : data.content.length === 0 ? (
         <div className="admin-empty-state">
           <div style={{ fontSize: '2.5rem', marginBottom: '0.5rem' }}>💸</div>
-          <div>Không có yêu cầu nào{filters.status ? ` (${STATUS_CONFIG[filters.status]?.label})` : ''}</div>
+          <div>{t('admin.noTopups')}{filters.status ? ` (${getStatusLabel(filters.status)})` : ''}</div>
         </div>
       ) : (
         <div className="admin-table-card">
@@ -140,12 +150,12 @@ export default function TopupManagePage() {
             <thead>
               <tr>
                 <th>#</th>
-                <th>Người dùng</th>
-                <th>Mã GD</th>
-                <th>Số tiền</th>
-                <th>Trạng thái</th>
-                <th>Thời gian</th>
-                <th>Thao tác</th>
+                <th>{t('admin.user')}</th>
+                <th>{t('admin.transCode')}</th>
+                <th>{t('admin.amount')}</th>
+                <th>{t('admin.status')}</th>
+                <th>{t('admin.time')}</th>
+                <th>{t('admin.actions')}</th>
               </tr>
             </thead>
             <tbody>
@@ -153,8 +163,8 @@ export default function TopupManagePage() {
                 <tr key={tx._id}>
                   <td className="admin-cell-muted">{filters.page * 20 + idx + 1}</td>
                   <td>
-                    <div style={{ fontWeight: 600, color: '#fff', fontSize: '0.88rem' }}>{tx.userName}</div>
-                    <div style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.4)' }}>{tx.userEmail}</div>
+                    <div style={{ fontWeight: 600, color: 'var(--admin-text)', fontSize: '0.88rem' }}>{tx.userName}</div>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--admin-text-muted)' }}>{tx.userEmail}</div>
                   </td>
                   <td>
                     <span style={{ fontFamily: 'monospace', background: 'rgba(167,139,250,0.1)', color: '#a78bfa', padding: '0.15rem 0.5rem', borderRadius: '5px', fontSize: '0.82rem', fontWeight: 700 }}>
@@ -163,31 +173,31 @@ export default function TopupManagePage() {
                   </td>
                   <td>
                     <span style={{ color: '#fbbf24', fontWeight: 700, fontSize: '1rem' }}>
-                      {tx.amount.toLocaleString('vi-VN')}đ
+                      {tx.amount.toLocaleString(locale)}đ
                     </span>
                   </td>
-                  <td><StatusBadge status={tx.status} /></td>
-                  <td style={{ fontSize: '0.78rem', color: 'rgba(255,255,255,0.45)', whiteSpace: 'nowrap' }}>
-                    {new Date(tx.createdAt).toLocaleString('vi-VN')}
+                  <td><StatusBadge status={tx.status} label={getStatusLabel(tx.status)} /></td>
+                  <td style={{ fontSize: '0.78rem', color: 'var(--admin-text-muted)', whiteSpace: 'nowrap' }}>
+                    {new Date(tx.createdAt).toLocaleString(locale)}
                   </td>
                   <td>
                     {tx.status === 'PENDING' ? (
                       <div style={{ display: 'flex', gap: '0.35rem' }}>
                         <button className="admin-btn admin-btn-success"
                           onClick={() => { setActionModal({ tx, action: 'approve' }); setAdminNote(''); }}
-                          title="Duyệt">
+                          title={t('admin.approve')}>
                           ✅
                         </button>
                         <button className="admin-btn admin-btn-danger"
                           onClick={() => { setActionModal({ tx, action: 'reject' }); setAdminNote(''); }}
-                          title="Từ chối">
+                          title={t('admin.reject')}>
                           ❌
                         </button>
                       </div>
                     ) : (
                       <button className="admin-btn admin-btn-info"
                         onClick={() => { setActionModal({ tx, action: null }); setAdminNote(tx.adminNote || ''); }}
-                        title="Xem chi tiết">
+                        title={t('admin.viewDetail')}>
                         👁️
                       </button>
                     )}
@@ -226,38 +236,38 @@ export default function TopupManagePage() {
           <div className="admin-modal" style={{ maxWidth: 480 }} onClick={e => e.stopPropagation()}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
               <h2 style={{ margin: 0, fontSize: '1.05rem' }}>
-                {actionModal.action === 'approve' ? '✅ Duyệt nạp tiền'
-                  : actionModal.action === 'reject' ? '❌ Từ chối yêu cầu'
-                  : '👁️ Chi tiết giao dịch'}
+                {actionModal.action === 'approve' ? `✅ ${t('admin.approveTopup')}`
+                  : actionModal.action === 'reject' ? `❌ ${t('admin.rejectRequest')}`
+                  : `👁️ ${t('admin.topupDetail')}`}
               </h2>
               <button className="admin-modal-close" onClick={() => setActionModal(null)}>✕</button>
             </div>
 
             {/* Transaction info */}
-            <div style={{ background: 'rgba(255,255,255,0.03)', borderRadius: '12px', padding: '1rem', marginBottom: '1.25rem', display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
+            <div style={{ background: 'var(--admin-surface)', borderRadius: '12px', padding: '1rem', marginBottom: '1.25rem', display: 'flex', flexDirection: 'column', gap: '0.6rem' }}>
               {[
-                ['Người dùng', actionModal.tx.userName],
-                ['Email', actionModal.tx.userEmail],
-                ['Mã GD', actionModal.tx.transferCode],
-                ['Số tiền', `${actionModal.tx.amount.toLocaleString('vi-VN')}đ`],
-                ['Thời gian', new Date(actionModal.tx.createdAt).toLocaleString('vi-VN')],
-              ].map(([k, v]) => (
+                [t('admin.user'),      actionModal.tx.userName,  false],
+                [t('admin.email'),     actionModal.tx.userEmail, false],
+                [t('admin.transCode'), actionModal.tx.transferCode, false],
+                [t('admin.amount'),    `${actionModal.tx.amount.toLocaleString(locale)}đ`, true],
+                [t('admin.time'),      new Date(actionModal.tx.createdAt).toLocaleString(locale), false],
+              ].map(([k, v, isAmount]) => (
                 <div key={k} style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.88rem' }}>
-                  <span style={{ color: 'rgba(255,255,255,0.45)' }}>{k}</span>
-                  <strong style={{ color: k === 'Số tiền' ? '#fbbf24' : '#fff' }}>{v}</strong>
+                  <span style={{ color: 'var(--admin-text-muted)' }}>{k}</span>
+                  <strong style={{ color: isAmount ? '#fbbf24' : 'var(--admin-text)' }}>{v}</strong>
                 </div>
               ))}
             </div>
 
             {actionModal.action && (
               <div style={{ marginBottom: '1.25rem' }}>
-                <label style={{ display: 'block', fontSize: '0.8rem', color: 'rgba(255,255,255,0.5)', marginBottom: '0.4rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
-                  Ghi chú{actionModal.action === 'reject' ? ' (lý do từ chối)' : ' (tùy chọn)'}
+                <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--admin-text-muted)', marginBottom: '0.4rem', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                  {t('admin.note')}{actionModal.action === 'reject' ? ` ${t('admin.noteRejection')}` : ` ${t('admin.noteOptional')}`}
                 </label>
                 <textarea
                   className="vr-admin-note"
                   rows={3}
-                  placeholder={actionModal.action === 'reject' ? 'Nhập lý do từ chối...' : 'Nhập ghi chú nếu có...'}
+                  placeholder={actionModal.action === 'reject' ? t('admin.rejectPlaceholder') : t('admin.notePlaceholder')}
                   value={adminNote}
                   onChange={e => setAdminNote(e.target.value)}
                 />
@@ -265,8 +275,8 @@ export default function TopupManagePage() {
             )}
 
             {actionModal.action === null && actionModal.tx.adminNote && (
-              <div style={{ background: 'rgba(255,255,255,0.03)', borderRadius: '10px', padding: '0.75rem', marginBottom: '1rem', fontSize: '0.85rem', color: 'rgba(255,255,255,0.6)' }}>
-                <div style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.35)', marginBottom: '0.3rem', textTransform: 'uppercase' }}>Ghi chú admin</div>
+              <div style={{ background: 'var(--admin-surface)', borderRadius: '10px', padding: '0.75rem', marginBottom: '1rem', fontSize: '0.85rem', color: 'var(--admin-text-muted)' }}>
+                <div style={{ fontSize: '0.75rem', color: 'var(--admin-text-dim)', marginBottom: '0.3rem', textTransform: 'uppercase' }}>{t('admin.adminNote')}</div>
                 {actionModal.tx.adminNote}
               </div>
             )}
@@ -274,7 +284,7 @@ export default function TopupManagePage() {
             {actionModal.action && (
               <div style={{ display: 'flex', gap: '0.75rem' }}>
                 <button className="wallet-btn-secondary" style={{ flex: 1 }} onClick={() => setActionModal(null)}>
-                  Hủy
+                  {t('admin.cancel')}
                 </button>
                 <button
                   disabled={saving || (actionModal.action === 'reject' && !adminNote.trim())}
@@ -287,9 +297,9 @@ export default function TopupManagePage() {
                       : 'linear-gradient(135deg, #dc2626, #b91c1c)',
                     opacity: saving ? 0.6 : 1,
                   }}>
-                  {saving ? '⏳ Đang xử lý...'
-                    : actionModal.action === 'approve' ? '✅ Xác nhận duyệt'
-                    : '❌ Xác nhận từ chối'}
+                  {saving ? `⏳ ${t('admin.processing')}`
+                    : actionModal.action === 'approve' ? `✅ ${t('admin.confirmApprove')}`
+                    : `❌ ${t('admin.confirmReject')}`}
                 </button>
               </div>
             )}

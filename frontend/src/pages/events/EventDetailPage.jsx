@@ -200,17 +200,10 @@ function ShareButtons({ event, eventId }) {
   );
 }
 
-// ── Report reasons ──────────────────────────────────────────────────────────
-const REPORT_REASONS = [
-  { value: 'SPAM',          label: '🚫 Spam / Quảng cáo rác' },
-  { value: 'MISLEADING',    label: '⚠️ Thông tin sai lệch / gây hiểu nhầm' },
-  { value: 'INAPPROPRIATE', label: '🔞 Nội dung không phù hợp' },
-  { value: 'FRAUD',         label: '💸 Lừa đảo / Gian lận' },
-  { value: 'DUPLICATE',     label: '📋 Sự kiện trùng lặp' },
-  { value: 'OTHER',         label: '❓ Lý do khác' },
-];
+const REPORT_REASON_KEYS = ['SPAM', 'MISLEADING', 'INAPPROPRIATE', 'FRAUD', 'DUPLICATE', 'OTHER'];
 
 function ReportModal({ eventId, eventTitle, onClose }) {
+  const { t } = useTranslation();
   const [reason, setReason]           = useState('');
   const [description, setDescription] = useState('');
   const [submitting, setSubmitting]   = useState(false);
@@ -219,14 +212,14 @@ function ReportModal({ eventId, eventTitle, onClose }) {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!reason) { setError('Vui lòng chọn lý do báo cáo'); return; }
+    if (!reason) { setError(t('report.selectReason')); return; }
     setSubmitting(true);
     setError('');
     try {
       await axiosInstance.post(`/events/${eventId}/report`, { reason, description });
       setDone(true);
     } catch (err) {
-      setError(err.response?.data?.error || 'Gửi báo cáo thất bại');
+      setError(err.response?.data?.error || t('common.error'));
     } finally {
       setSubmitting(false);
     }
@@ -237,7 +230,7 @@ function ReportModal({ eventId, eventTitle, onClose }) {
       <div className="report-modal" onClick={e => e.stopPropagation()}>
         <div className="report-modal-header">
           <div>
-            <h3>🚨 Báo cáo vi phạm</h3>
+            <h3>{t('report.title')}</h3>
             <p className="report-modal-sub">{eventTitle}</p>
           </div>
           <button className="report-close-btn" onClick={onClose}>✕</button>
@@ -246,31 +239,31 @@ function ReportModal({ eventId, eventTitle, onClose }) {
         {done ? (
           <div className="report-done">
             <div className="report-done-icon">✅</div>
-            <h4>Báo cáo đã được gửi!</h4>
-            <p>Cảm ơn bạn đã phản ánh. Đội ngũ kiểm duyệt sẽ xem xét và xử lý sớm nhất.</p>
-            <button className="report-submit-btn" onClick={onClose}>Đóng</button>
+            <h4>{t('report.doneTitle')}</h4>
+            <p>{t('report.doneDesc')}</p>
+            <button className="report-submit-btn" onClick={onClose}>{t('report.close')}</button>
           </div>
         ) : (
           <form onSubmit={handleSubmit}>
             <div className="report-field">
-              <label className="report-label">Lý do báo cáo <span style={{ color: '#f87171' }}>*</span></label>
+              <label className="report-label">{t('report.reasonLabel')} <span style={{ color: '#f87171' }}>*</span></label>
               <div className="report-reasons">
-                {REPORT_REASONS.map(r => (
-                  <label key={r.value} className={`report-reason-item ${reason === r.value ? 'selected' : ''}`}>
-                    <input type="radio" name="reason" value={r.value}
-                      checked={reason === r.value}
-                      onChange={() => { setReason(r.value); setError(''); }} />
-                    {r.label}
+                {REPORT_REASON_KEYS.map(key => (
+                  <label key={key} className={`report-reason-item ${reason === key ? 'selected' : ''}`}>
+                    <input type="radio" name="reason" value={key}
+                      checked={reason === key}
+                      onChange={() => { setReason(key); setError(''); }} />
+                    {t(`report.reasons.${key}`)}
                   </label>
                 ))}
               </div>
             </div>
 
             <div className="report-field">
-              <label className="report-label">Mô tả thêm (tùy chọn)</label>
+              <label className="report-label">{t('report.descLabel')}</label>
               <textarea
                 className="report-textarea"
-                placeholder="Mô tả chi tiết vấn đề bạn gặp phải với sự kiện này..."
+                placeholder={t('report.descPlaceholder')}
                 value={description}
                 onChange={e => setDescription(e.target.value)}
                 maxLength={1000}
@@ -282,9 +275,9 @@ function ReportModal({ eventId, eventTitle, onClose }) {
             {error && <div className="report-error">⚠️ {error}</div>}
 
             <div className="report-actions">
-              <button type="button" className="report-cancel-btn" onClick={onClose}>Hủy</button>
+              <button type="button" className="report-cancel-btn" onClick={onClose}>{t('report.cancel')}</button>
               <button type="submit" className="report-submit-btn" disabled={submitting || !reason}>
-                {submitting ? '⏳ Đang gửi...' : '🚨 Gửi báo cáo'}
+                {submitting ? t('report.submitting') : t('report.submit')}
               </button>
             </div>
           </form>
@@ -580,7 +573,7 @@ export default function EventDetailPage() {
                 {user && (
                   myReport ? (
                     <span style={{ fontSize: '0.78rem', color: '#fbbf24', background: 'rgba(251,191,36,0.1)', padding: '0.2rem 0.6rem', borderRadius: '6px', border: '1px solid rgba(251,191,36,0.2)' }}>
-                      ⚠️ Đã báo cáo sự kiện này
+                      {t('report.alreadyReported')}
                     </span>
                   ) : (
                     <button
@@ -589,7 +582,7 @@ export default function EventDetailPage() {
                       onMouseOver={e => { e.currentTarget.style.borderColor = 'rgba(248,113,113,0.5)'; e.currentTarget.style.color = '#f87171'; e.currentTarget.style.background = 'rgba(248,113,113,0.08)'; }}
                       onMouseOut={e => { e.currentTarget.style.borderColor = 'rgba(248,113,113,0.25)'; e.currentTarget.style.color = 'rgba(248,113,113,0.7)'; e.currentTarget.style.background = 'none'; }}
                     >
-                      🚨 Báo cáo vi phạm
+                      {t('report.reportBtn')}
                     </button>
                   )
                 )}

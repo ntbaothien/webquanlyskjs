@@ -92,15 +92,10 @@ export default function MyTicketsPage() {
             { key: 'free', label: `${t('tickets.freeTab')} (${regs.length})` },
             { key: 'paid', label: `${t('tickets.paidTab')} (${bookings.length})` },
           ].map(item => (
-            <button key={item.key} onClick={() => setTab(item.key)} style={{
-              padding: '0.5rem 1.25rem',
-              borderRadius: '20px',
-              border: `1px solid ${tab === item.key ? '#6c63ff' : 'rgba(255,255,255,0.15)'}`,
-              background: tab === item.key ? 'rgba(108,99,255,0.2)' : 'transparent',
-              color: tab === item.key ? '#a78bfa' : 'rgba(255,255,255,0.6)',
-              cursor: 'pointer', fontWeight: tab === item.key ? 700 : 400,
-              transition: 'all 0.2s', fontSize: '0.9rem'
-            }}>{item.label}</button>
+            <button key={item.key} onClick={() => setTab(item.key)}
+              className={`ticket-tab-btn${tab === item.key ? ' active' : ''}`}>
+              {item.label}
+            </button>
           ))}
         </div>
 
@@ -126,7 +121,7 @@ export default function MyTicketsPage() {
                   <h4>{r.eventTitle || t('nav.events')}</h4>
                   <p className="event-meta">📍 {r.eventLocation || '—'}</p>
                   <p className="event-meta">📅 {r.eventStartDate ? new Date(r.eventStartDate).toLocaleDateString(locale) : '—'}</p>
-                  <p className="event-meta" style={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.8rem' }}>
+                  <p className="event-meta" style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>
                     {t('tickets.registeredAt')}: {r.registeredAt ? new Date(r.registeredAt).toLocaleDateString(locale) : '—'}
                   </p>
 
@@ -164,12 +159,12 @@ export default function MyTicketsPage() {
                     <span className={`reg-status-${b.status?.toLowerCase()}`}>{b.status}</span>
                   </div>
                   <h4>{b.eventTitle || t('nav.events')}</h4>
-                  <p className="event-meta">🪑 {t('tickets.zone')}: <strong style={{ color: '#a78bfa' }}>{b.zoneName}</strong></p>
+                  <p className="event-meta">🪑 {t('tickets.zone')}: <strong style={{ color: 'var(--purple)' }}>{b.zoneName}</strong></p>
                   <p className="event-meta">🎟 {t('tickets.quantity')}: <strong>{b.quantity} {t('tickets.title').toLowerCase()}</strong></p>
-                  <p className="event-meta" style={{ color: '#a78bfa', fontWeight: 700 }}>
+                  <p className="event-meta" style={{ color: 'var(--purple)', fontWeight: 700 }}>
                     💰 {(b.finalAmount || b.totalPrice)?.toLocaleString(locale)}đ
                   </p>
-                  <p className="event-meta" style={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.8rem' }}>
+                  <p className="event-meta" style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>
                     {t('tickets.bookedAt')}: {b.createdAt ? new Date(b.createdAt).toLocaleDateString(locale) : '—'}
                   </p>
 

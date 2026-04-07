@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import axiosInstance from '../../utils/axiosInstance';
 import AdminLayout from '../../components/admin/AdminLayout';
+import useThemeStore from '../../store/themeStore';
 import {
   Chart as ChartJS,
   CategoryScale, LinearScale, BarElement, ArcElement,
@@ -15,6 +17,24 @@ ChartJS.register(
 );
 
 export default function DashboardPage() {
+  const { t, i18n } = useTranslation();
+  const locale = i18n.language === 'vi' ? 'vi-VN' : 'en-US';
+  const { theme } = useThemeStore();
+  const isLight = theme === 'light';
+
+  // Theme-aware chart colors
+  const chartTooltip = {
+    backgroundColor: isLight ? 'rgba(255,255,255,0.98)' : '#1a1a2e',
+    borderColor:     isLight ? 'rgba(0,0,0,0.1)'         : 'rgba(255,255,255,0.1)',
+    borderWidth: 1,
+    titleColor: isLight ? 'rgba(0,0,0,0.88)'  : '#fff',
+    bodyColor:  isLight ? 'rgba(0,0,0,0.65)'  : 'rgba(255,255,255,0.8)',
+    padding: 10, cornerRadius: 8,
+  };
+  const chartGridColor  = isLight ? 'rgba(0,0,0,0.06)'  : 'rgba(255,255,255,0.04)';
+  const chartTickColor  = isLight ? 'rgba(0,0,0,0.45)'  : 'rgba(255,255,255,0.4)';
+  const legendLabelColor = isLight ? 'rgba(0,0,0,0.6)'  : 'rgba(255,255,255,0.7)';
+
   const [stats, setStats] = useState(null);
   const [revenue, setRevenue] = useState(null);
   const [report, setReport] = useState(null);
@@ -35,17 +55,17 @@ export default function DashboardPage() {
 
   if (loading) {
     return (
-      <AdminLayout title="📊 Tổng quan" subtitle="Dashboard quản trị hệ thống">
-        <div className="admin-loading">⏳ Đang tải thống kê...</div>
+      <AdminLayout title={`📊 ${t('admin.dashboard')}`} subtitle={t('admin.dashboardSub')}>
+        <div className="admin-loading">⏳ {t('common.loading')}</div>
       </AdminLayout>
     );
   }
 
   const statCards = [
-    { icon: '📅', value: stats?.totalEvents ?? 0, label: 'Tổng sự kiện' },
-    { icon: '✅', value: stats?.publishedEvents ?? 0, label: 'Đã xuất bản' },
-    { icon: '👥', value: stats?.totalUsers ?? 0, label: 'Người dùng' },
-    { icon: '🎟️', value: stats?.totalRegistrations ?? 0, label: 'Lượt đăng ký' },
+    { icon: '📅', value: stats?.totalEvents ?? 0,         label: t('admin.totalEvents') },
+    { icon: '✅', value: stats?.publishedEvents ?? 0,     label: t('admin.published') },
+    { icon: '👥', value: stats?.totalUsers ?? 0,          label: t('admin.users') },
+    { icon: '🎟️', value: stats?.totalRegistrations ?? 0, label: t('admin.registrations') },
   ];
 
   // Chart: Events by month
@@ -55,7 +75,7 @@ export default function DashboardPage() {
   const barChartData = {
     labels: monthLabels,
     datasets: [{
-      label: 'Sự kiện',
+      label: t('admin.events'),
       data: monthData,
       backgroundColor: 'rgba(233, 69, 96, 0.6)',
       borderColor: '#e94560',
@@ -70,24 +90,16 @@ export default function DashboardPage() {
     maintainAspectRatio: false,
     plugins: {
       legend: { display: false },
-      tooltip: {
-        backgroundColor: '#1a1a2e',
-        borderColor: 'rgba(255,255,255,0.1)',
-        borderWidth: 1,
-        titleColor: '#fff',
-        bodyColor: 'rgba(255,255,255,0.8)',
-        padding: 10,
-        cornerRadius: 8,
-      }
+      tooltip: chartTooltip,
     },
     scales: {
       x: {
-        grid: { color: 'rgba(255,255,255,0.04)' },
-        ticks: { color: 'rgba(255,255,255,0.4)', font: { size: 11 } }
+        grid: { color: chartGridColor },
+        ticks: { color: chartTickColor, font: { size: 11 } }
       },
       y: {
-        grid: { color: 'rgba(255,255,255,0.04)' },
-        ticks: { color: 'rgba(255,255,255,0.4)', font: { size: 11 }, stepSize: 1 },
+        grid: { color: chartGridColor },
+        ticks: { color: chartTickColor, font: { size: 11 }, stepSize: 1 },
         beginAtZero: true,
       }
     }
@@ -116,22 +128,14 @@ export default function DashboardPage() {
       legend: {
         position: 'bottom',
         labels: {
-          color: 'rgba(255,255,255,0.7)',
+          color: legendLabelColor,
           padding: 16,
           usePointStyle: true,
           pointStyleWidth: 10,
           font: { size: 12 }
         }
       },
-      tooltip: {
-        backgroundColor: '#1a1a2e',
-        borderColor: 'rgba(255,255,255,0.1)',
-        borderWidth: 1,
-        titleColor: '#fff',
-        bodyColor: 'rgba(255,255,255,0.8)',
-        padding: 10,
-        cornerRadius: 8,
-      }
+      tooltip: chartTooltip,
     },
     cutout: '65%',
   };
@@ -141,14 +145,14 @@ export default function DashboardPage() {
   const lineData = {
     labels: revenueByEvent.slice(0, 8).map(e => e.eventTitle?.substring(0, 15) + '...' || 'N/A'),
     datasets: [{
-      label: 'Doanh thu (VNĐ)',
+      label: t('admin.revenue'),
       data: revenueByEvent.slice(0, 8).map(e => e.revenue || 0),
       borderColor: '#e94560',
       backgroundColor: 'rgba(233, 69, 96, 0.1)',
       fill: true,
       tension: 0.4,
       pointBackgroundColor: '#e94560',
-      pointBorderColor: '#fff',
+      pointBorderColor: isLight ? '#fff' : '#fff',
       pointBorderWidth: 2,
       pointRadius: 4,
     }]
@@ -160,27 +164,21 @@ export default function DashboardPage() {
     plugins: {
       legend: { display: false },
       tooltip: {
-        backgroundColor: '#1a1a2e',
-        borderColor: 'rgba(255,255,255,0.1)',
-        borderWidth: 1,
-        titleColor: '#fff',
-        bodyColor: 'rgba(255,255,255,0.8)',
-        padding: 10,
-        cornerRadius: 8,
+        ...chartTooltip,
         callbacks: {
-          label: (ctx) => `${ctx.parsed.y?.toLocaleString('vi-VN')}đ`
+          label: (ctx) => `${ctx.parsed.y?.toLocaleString(locale)}đ`
         }
       }
     },
     scales: {
       x: {
-        grid: { color: 'rgba(255,255,255,0.04)' },
-        ticks: { color: 'rgba(255,255,255,0.4)', font: { size: 10 } }
+        grid: { color: chartGridColor },
+        ticks: { color: chartTickColor, font: { size: 10 } }
       },
       y: {
-        grid: { color: 'rgba(255,255,255,0.04)' },
+        grid: { color: chartGridColor },
         ticks: {
-          color: 'rgba(255,255,255,0.4)',
+          color: chartTickColor,
           font: { size: 11 },
           callback: (v) => v >= 1000 ? (v / 1000) + 'k' : v
         },
@@ -190,13 +188,13 @@ export default function DashboardPage() {
   };
 
   return (
-    <AdminLayout title="📊 Tổng quan" subtitle="Dashboard quản trị hệ thống">
+    <AdminLayout title={`📊 ${t('admin.dashboard')}`} subtitle={t('admin.dashboardSub')}>
       {/* Stat Cards */}
       <div className="admin-stats-grid">
         {statCards.map((card, i) => (
           <div key={i} className="admin-stat-card">
             <div className="admin-stat-info">
-              <div className="admin-stat-value">{card.value.toLocaleString('vi-VN')}</div>
+              <div className="admin-stat-value">{card.value.toLocaleString(locale)}</div>
               <div className="admin-stat-label">{card.label}</div>
             </div>
             <div className="admin-stat-icon">{card.icon}</div>
@@ -207,13 +205,13 @@ export default function DashboardPage() {
       {/* Charts Row 1 */}
       <div className="admin-charts-grid">
         <div className="admin-chart-card">
-          <h3>📊 Sự kiện theo tháng</h3>
+          <h3>📊 {t('admin.eventsByMonth')}</h3>
           <div style={{ height: 260 }}>
             <Bar data={barChartData} options={barChartOptions} />
           </div>
         </div>
         <div className="admin-chart-card">
-          <h3>👥 Người dùng theo vai trò</h3>
+          <h3>👥 {t('admin.usersByRole')}</h3>
           <div style={{ height: 260 }}>
             <Doughnut data={doughnutData} options={doughnutOptions} />
           </div>
@@ -223,7 +221,7 @@ export default function DashboardPage() {
       {/* Charts Row 2 */}
       <div className="admin-charts-grid">
         <div className="admin-chart-card" style={{ gridColumn: '1 / -1' }}>
-          <h3>💰 Doanh thu theo sự kiện</h3>
+          <h3>💰 {t('admin.revenueByEvent')}</h3>
           <div style={{ height: 260 }}>
             <Line data={lineData} options={lineOptions} />
           </div>
@@ -234,23 +232,23 @@ export default function DashboardPage() {
       {stats?.top5Events?.length > 0 && (
         <div className="admin-table-card">
           <div className="admin-table-header">
-            <h3>🔥 Top 5 sự kiện đông nhất</h3>
+            <h3>🔥 {t('admin.top5Events')}</h3>
           </div>
           <table className="admin-table">
             <thead>
               <tr>
                 <th>#</th>
-                <th>Tên sự kiện</th>
-                <th>Địa điểm</th>
-                <th>Số tham dự</th>
-                <th>Trạng thái</th>
+                <th>{t('admin.eventName')}</th>
+                <th>{t('admin.location')}</th>
+                <th>{t('admin.attendees')}</th>
+                <th>{t('admin.status')}</th>
               </tr>
             </thead>
             <tbody>
               {stats.top5Events.map((e, i) => (
                 <tr key={e._id}>
                   <td style={{ fontWeight: 700, color: 'var(--admin-primary)' }}>{i + 1}</td>
-                  <td><strong style={{ color: '#fff' }}>{e.title}</strong></td>
+                  <td><strong style={{ color: 'var(--admin-text)' }}>{e.title}</strong></td>
                   <td>{e.location}</td>
                   <td style={{ fontWeight: 600 }}>{e.currentAttendees}</td>
                   <td>
@@ -269,24 +267,24 @@ export default function DashboardPage() {
       {report?.recentEvents?.length > 0 && (
         <div className="admin-table-card">
           <div className="admin-table-header">
-            <h3>📋 Sự kiện gần đây</h3>
+            <h3>📋 {t('admin.recentEvents')}</h3>
           </div>
           <table className="admin-table">
             <thead>
               <tr>
-                <th>Tên</th>
-                <th>Người tạo</th>
-                <th>Ngày tạo</th>
-                <th>Trạng thái</th>
-                <th>Tham dự</th>
+                <th>{t('admin.name')}</th>
+                <th>{t('admin.creator')}</th>
+                <th>{t('admin.createdAt')}</th>
+                <th>{t('admin.status')}</th>
+                <th>{t('admin.attendees')}</th>
               </tr>
             </thead>
             <tbody>
               {report.recentEvents.map(e => (
                 <tr key={e._id}>
-                  <td><strong style={{ color: '#fff' }}>{e.title}</strong></td>
+                  <td><strong style={{ color: 'var(--admin-text)' }}>{e.title}</strong></td>
                   <td>{e.organizerName}</td>
-                  <td>{e.createdAt ? new Date(e.createdAt).toLocaleDateString('vi-VN') : '—'}</td>
+                  <td>{e.createdAt ? new Date(e.createdAt).toLocaleDateString(locale) : '—'}</td>
                   <td>
                     <span className={`admin-status-badge ${e.status?.toLowerCase()}`}>
                       {e.status}
