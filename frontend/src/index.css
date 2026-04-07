@@ -40,6 +40,8 @@ html { scroll-behavior: smooth; }
 
   --navbar-bg:     rgba(15,15,26,0.95);
   --card-hover-shadow: 0 8px 32px rgba(233,69,96,0.2);
+  --calendar-filter: invert(0.7);
+  --bg-counter:     rgba(0,0,0,0.3);
 }
 
 /* ========== LIGHT THEME ========== */
@@ -77,6 +79,8 @@ html { scroll-behavior: smooth; }
 
   --navbar-bg:     rgba(255,255,255,0.96);
   --card-hover-shadow: 0 8px 32px rgba(233,69,96,0.15);
+  --calendar-filter: none;
+  --bg-counter:     rgba(0,0,0,0.05);
 }
 
 /* ========== BASE ========== */

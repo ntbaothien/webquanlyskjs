@@ -408,7 +408,7 @@ export default function EventDetailPage() {
                           </div>
                         </div>
                         <textarea required value={comment} onChange={e => setComment(e.target.value)} placeholder={t('eventDetail.reviewPlaceholder', 'Chia sẻ cảm nhận của bạn...')} 
-                          style={{ width: '100%', padding: '1rem', background: 'var(--bg-card)', color: 'white', border: '1px solid var(--border)', borderRadius: '8px', minHeight: '100px' }} />
+                          style={{ width: '100%', padding: '1rem', background: 'var(--bg-card)', color: 'var(--text-primary)', border: '1px solid var(--border)', borderRadius: '8px', minHeight: '100px' }} />
                         <button type="submit" className="btn-register" style={{ marginTop: '1rem', width: 'auto' }}>{t('eventDetail.submitReview')}</button>
                       </form>
                     )}
@@ -443,7 +443,7 @@ export default function EventDetailPage() {
                   {similar.map(ev => (
                     <Link key={ev._id} to={`/events/${ev._id}`} className="similar-card" style={{ textDecoration: 'none', background: 'var(--bg-card)', padding: '1rem', borderRadius: '12px', border: '1px solid var(--border)', transition: 'all 0.3s' }}>
                       <img src={getImageUrl(ev.bannerImagePath)} alt={ev.title} style={{ width: '100%', height: '120px', objectFit: 'cover', borderRadius: '8px', marginBottom: '0.75rem' }} onError={e => e.target.src = '/placeholder.png'} />
-                      <h4 style={{ color: 'white', margin: '0' }}>{ev.title}</h4>
+                      <h4 style={{ color: 'var(--text-primary)', margin: '0' }}>{ev.title}</h4>
                       <p style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', margin: '0.25rem 0' }}>📍 {ev.location} • 📅 {new Date(ev.startDate).toLocaleDateString()}</p>
                     </Link>
                   ))}
