@@ -6,7 +6,9 @@ const seatZoneSchema = new mongoose.Schema({
   color: { type: String, default: '#6c63ff' },
   totalSeats: { type: Number, required: true },
   soldSeats: { type: Number, default: 0 },
-  price: { type: Number, default: 0 }
+  price: { type: Number, default: 0 },
+  x: { type: Number, default: 0 },
+  y: { type: Number, default: 0 }
 }, { _id: true });
 
 const eventSchema = new mongoose.Schema({

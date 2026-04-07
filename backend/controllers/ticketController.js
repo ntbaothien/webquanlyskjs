@@ -43,10 +43,15 @@ export const getMyBookings = async (req, res) => {
       .sort({ createdAt: -1 })
       .lean();
 
-    const enriched = bookings.map(b => ({
-      ...b,
-      id: b._id,
-      finalAmount: b.totalPrice
+    const enriched = await Promise.all(bookings.map(async (b) => {
+      const event = await Event.findById(b.eventId).lean();
+      return {
+        ...b,
+        id: b._id,
+        finalAmount: b.totalPrice,
+        eventLocation: event?.location || '',
+        eventStartDate: event?.startDate || null,
+      };
     }));
 
     res.json(enriched);

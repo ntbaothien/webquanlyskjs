@@ -14,6 +14,8 @@ import MyTicketsPage from './pages/tickets/MyTicketsPage';
 import BookingPage from './pages/tickets/BookingPage';
 import TicketQRPage from './pages/tickets/TicketQRPage';
 import CheckInPage from './pages/tickets/CheckInPage';
+import ResellMarketplacePage from './pages/tickets/ResellMarketplacePage';
+import GroupBuyCheckoutPage from './pages/tickets/GroupBuyCheckoutPage';
 
 // Organizer pages
 import EventFormPage from './pages/orders/OrderListPage';
@@ -40,6 +42,7 @@ import WalletPage from './pages/wallet/WalletPage';
 import ProfilePage from './pages/profile/ProfilePage';
 import SavedEventsPage from './pages/profile/SavedEventsPage';
 import MyWaitlistPage from './pages/profile/MyWaitlistPage';
+import LoyaltyDashboard from './pages/profile/LoyaltyDashboard';
 
 // Error pages
 import NotFoundPage from './pages/errors/NotFoundPage';
@@ -123,7 +126,14 @@ export default function App() {
         {/* Profile */}
         <Route path="/profile" element={<PrivateRoute><ProfilePage /></PrivateRoute>} />
         <Route path="/profile/saved" element={<PrivateRoute><SavedEventsPage /></PrivateRoute>} />
+        <Route path="/profile/loyalty" element={<PrivateRoute><LoyaltyDashboard /></PrivateRoute>} />
         <Route path="/my-waitlist" element={<PrivateRoute><MyWaitlistPage /></PrivateRoute>} />
+
+        {/* Resell Marketplace */}
+        <Route path="/marketplace" element={<ResellMarketplacePage />} />
+
+        {/* Group Buy */}
+        <Route path="/group-checkout/:inviteCode" element={<GroupBuyCheckoutPage />} />
 
         {/* 404 — catch all */}
         <Route path="*" element={<NotFoundPage />} />

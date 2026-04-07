@@ -22,6 +22,7 @@ export default function EventFormPage() {
   const [bannerFile, setBannerFile] = useState(null);
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [mapLocation, setMapLocation] = useState('');
 
   useEffect(() => {
     if (id) {
@@ -38,6 +39,7 @@ export default function EventFormPage() {
           tagsInput: (e.tags || []).join(', '),
           isFree: e.free !== false
         });
+        setMapLocation(e.location || '');
         if (e.seatZones?.length) setZones(e.seatZones);
       });
     }
@@ -120,9 +122,33 @@ export default function EventFormPage() {
             </div>
 
             <div className="form-group">
-              <label>{t('eventForm.locationLabel')}</label>
-              <input type="text" value={form.location} onChange={f('location')}
-                placeholder={t('eventForm.locationPlaceholder')} required />
+              <label>{t('eventForm.locationLabel')} 🗺️</label>
+              <div style={{ display: 'flex', gap: '0.5rem' }}>
+                <input type="text" value={form.location} onChange={f('location')}
+                  onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); setMapLocation(form.location); } }}
+                  placeholder={t('eventForm.locationPlaceholder')} required style={{ flex: 1 }} />
+                <button type="button" onClick={() => setMapLocation(form.location)} style={{
+                  padding: '0 1.25rem', borderRadius: '10px', background: 'rgba(108,99,255,0.15)',
+                  border: '1px solid rgba(108,99,255,0.4)', color: '#a78bfa', cursor: 'pointer', fontWeight: 600,
+                  transition: 'all 0.2s', whiteSpace: 'nowrap'
+                }}>
+                  📍 Dò tọa độ
+                </button>
+              </div>
+              {mapLocation && mapLocation.trim() !== '' && (
+                <div style={{
+                  marginTop: '0.75rem', borderRadius: '12px', overflow: 'hidden',
+                  border: '2px solid rgba(108,99,255,0.3)', height: '240px', background: 'var(--bg-input)'
+                }}>
+                  <div style={{ fontSize: '0.75rem', padding: '0.2rem 0.5rem', background: 'rgba(108,99,255,0.2)', color: '#a78bfa', fontWeight: 600 }}>
+                    Kiểm tra vị trí trên bản đồ — Hãy sửa lại địa chỉ nếu ghim rớt sai chỗ!
+                  </div>
+                  <iframe
+                    width="100%" height="calc(100% - 22px)" style={{ border: 0 }} loading="lazy" allowFullScreen
+                    src={`https://www.google.com/maps?q=${encodeURIComponent(mapLocation)}&output=embed`}
+                  ></iframe>
+                </div>
+              )}
             </div>
 
             <div className="form-row">

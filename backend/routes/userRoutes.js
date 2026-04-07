@@ -4,7 +4,7 @@ import { upload } from '../middleware/upload.js';
 import {
   getMe, updateMe, changeMyPassword,
   getMyStats, getMySaved, toggleSaveEvent, unsaveEvent,
-  requestTopup, getMyTransactions
+  requestTopup, getMyTransactions, getLoyaltyInfo
 } from '../controllers/userController.js';
 
 const router = Router();
@@ -23,5 +23,8 @@ router.delete('/me/saved/:eventId', unsaveEvent);
 // Wallet / Top-up
 router.post('/me/topup', requestTopup);
 router.get('/me/transactions', getMyTransactions);
+
+// Gamification
+router.get('/me/loyalty', getLoyaltyInfo);
 
 export default router;

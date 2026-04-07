@@ -11,14 +11,20 @@ const ticketSchema = new mongoose.Schema({
   zoneName: { type: String, default: 'General' },
   status: {
     type: String,
-    enum: ['ACTIVE', 'USED', 'CANCELLED'],
+    enum: ['ACTIVE', 'USED', 'CANCELLED', 'RESELLING', 'TRANSFERRED'],
     default: 'ACTIVE'
   },
   eventDate: { type: Date },
-  usedAt: { type: Date, default: null }
+  usedAt: { type: Date, default: null },
+
+  // === Resell Market ===
+  originalPrice: { type: Number, default: 0 },      // giá gốc khi mua
+  resellListingId: { type: mongoose.Schema.Types.ObjectId, ref: 'ResellListing', default: null },
+  previousOwnerId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null }
 }, { timestamps: true });
 
 ticketSchema.index({ userId: 1 });
+ticketSchema.index({ ticketCode: 1 });
 
 const Ticket = mongoose.model('Ticket', ticketSchema);
 export default Ticket;

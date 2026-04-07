@@ -4,6 +4,7 @@ import Booking from '../models/Booking.js';
 import Waitlist from '../models/Waitlist.js';
 import User from '../models/User.js';
 import Notification from '../models/Notification.js';
+import SeatHold from '../models/SeatHold.js';
 import { paginate } from '../utils/pagination.js';
 
 /**
@@ -391,3 +392,88 @@ function mapTagToCategory(tag) {
   };
   return map[t] || 'OTHER';
 }
+
+/**
+ * GET /api/organizer/events/:eventId/heatmap
+ * Trả về "độ nóng" (0.0 → 1.0) cho từng seatZone
+ * heat = (soldSeats + holdingSeats) / totalSeats
+ */
+export const getEventHeatmap = async (req, res) => {
+  try {
+    const event = await Event.findById(req.params.eventId).lean();
+    if (!event) return res.status(404).json({ error: 'Không tìm thấy sự kiện' });
+
+    // Kiểm tra quyền
+    if (event.organizerId.toString() !== req.user._id.toString() && req.user.role !== 'ADMIN') {
+      return res.status(403).json({ error: 'Không có quyền xem heatmap' });
+    }
+
+    const now = new Date();
+
+    // Lấy tổng số ghế đang giữ theo zone
+    const holdAgg = await SeatHold.aggregate([
+      {
+        $match: {
+          eventId: event._id,
+          expiresAt: { $gt: now }
+        }
+      },
+      {
+        $group: {
+          _id: '$zoneId',
+          holdingSeats: { $sum: '$quantity' }
+        }
+      }
+    ]);
+
+    const holdMap = {};
+    holdAgg.forEach(h => { holdMap[h._id] = h.holdingSeats; });
+
+    // Tính heat cho từng zone
+    const heatmap = event.seatZones.map(zone => {
+      const zoneIdStr = zone._id.toString();
+      const sold = zone.soldSeats || 0;
+      const holding = holdMap[zoneIdStr] || 0;
+      const total = zone.totalSeats || 1;
+      const heat = Math.min(1, (sold + holding) / total);
+
+      // Xác định màu sắc theo heat
+      let heatColor;
+      if (heat >= 0.8) heatColor = '#ef4444';      // đỏ - rất hot
+      else if (heat >= 0.6) heatColor = '#f97316'; // cam
+      else if (heat >= 0.4) heatColor = '#eab308'; // vàng
+      else if (heat >= 0.2) heatColor = '#84cc16'; // vàng xanh
+      else heatColor = '#22c55e';                   // xanh - còn nhiều
+
+      return {
+        zoneId: zoneIdStr,
+        zoneName: zone.name,
+        totalSeats: zone.totalSeats,
+        soldSeats: sold,
+        holdingSeats: holding,
+        availableSeats: Math.max(0, total - sold - holding),
+        heat: parseFloat(heat.toFixed(2)),
+        heatColor,
+        heatLabel: heat >= 0.8 ? 'Rất hot' : heat >= 0.5 ? 'Hot' : heat >= 0.2 ? 'Bình thường' : 'Còn nhiều',
+        price: zone.price,
+        color: zone.color
+      };
+    });
+
+    res.json({
+      eventId: event._id,
+      eventTitle: event.title,
+      heatmap,
+      summary: {
+        totalZones: heatmap.length,
+        avgHeat: heatmap.length > 0
+          ? parseFloat((heatmap.reduce((s, z) => s + z.heat, 0) / heatmap.length).toFixed(2))
+          : 0,
+        hotZones: heatmap.filter(z => z.heat >= 0.6).length
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+

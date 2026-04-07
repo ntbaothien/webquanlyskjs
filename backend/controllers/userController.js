@@ -224,3 +224,124 @@ export const getMyTransactions = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
+
+/**
+ * ==============================
+ * GAMIFICATION — Loyalty Points
+ * ==============================
+ */
+
+// Tier thresholds
+const TIER_THRESHOLDS = {
+  BRONZE: 0,
+  SILVER: 200,
+  GOLD: 500,
+  PLATINUM: 1000
+};
+
+// Points per action
+const POINT_VALUES = {
+  BUY_TICKET: 50,
+  LEAVE_REVIEW: 10,
+  DAILY_LOGIN: 5,
+  REGISTER_FREE_EVENT: 5,
+  BUY_RESELL_TICKET: 20,
+  SHARE_EVENT: 3
+};
+
+/**
+ * Hàm utility: Cộng điểm cho user và cập nhật tier
+ * @param {ObjectId|String} userId
+ * @param {String} action - key từ POINT_VALUES
+ * @param {String} description - mô tả hành động
+ */
+export const rewardPoints = async (userId, action, description = '') => {
+  const points = POINT_VALUES[action] || 0;
+  if (points === 0) return null;
+
+  const user = await User.findByIdAndUpdate(
+    userId,
+    {
+      $inc: { loyaltyPoints: points },
+      $push: {
+        pointHistory: {
+          action,
+          points,
+          description: description || action,
+          earnedAt: new Date()
+        }
+      }
+    },
+    { new: true }
+  );
+
+  if (!user) return null;
+
+  // Cập nhật tier
+  let newTier = 'BRONZE';
+  if (user.loyaltyPoints >= TIER_THRESHOLDS.PLATINUM) newTier = 'PLATINUM';
+  else if (user.loyaltyPoints >= TIER_THRESHOLDS.GOLD) newTier = 'GOLD';
+  else if (user.loyaltyPoints >= TIER_THRESHOLDS.SILVER) newTier = 'SILVER';
+
+  if (newTier !== user.loyaltyTier) {
+    await User.findByIdAndUpdate(userId, { loyaltyTier: newTier });
+
+    // Tặng badge khi lên hạng
+    const tierBadge = `TIER_${newTier}`;
+    if (!user.badges.includes(tierBadge)) {
+      await User.findByIdAndUpdate(userId, { $addToSet: { badges: tierBadge } });
+    }
+  }
+
+  return { points, newTotal: user.loyaltyPoints, tier: newTier };
+};
+
+/**
+ * GET /api/users/me/loyalty — Xem thông tin điểm thưởng
+ */
+export const getLoyaltyInfo = async (req, res) => {
+  try {
+    const user = await User.findById(req.user._id)
+      .select('loyaltyPoints loyaltyTier badges pointHistory fullName avatarUrl')
+      .lean();
+
+    if (!user) return res.status(404).json({ error: 'Không tìm thấy người dùng' });
+
+    // Tính điểm cần để lên tier tiếp theo
+    const tiers = ['BRONZE', 'SILVER', 'GOLD', 'PLATINUM'];
+    const currentTierIndex = tiers.indexOf(user.loyaltyTier);
+    const nextTier = tiers[currentTierIndex + 1] || null;
+    const nextTierThreshold = nextTier ? TIER_THRESHOLDS[nextTier] : null;
+    const pointsToNextTier = nextTierThreshold ? Math.max(0, nextTierThreshold - user.loyaltyPoints) : 0;
+
+    // Lấy 20 điểm gần nhất
+    const recentHistory = (user.pointHistory || [])
+      .sort((a, b) => new Date(b.earnedAt) - new Date(a.earnedAt))
+      .slice(0, 20);
+
+    // Benefits theo tier
+    const tierBenefits = {
+      BRONZE: ['Tích điểm cơ bản'],
+      SILVER: ['Tích điểm cơ bản', 'Ưu tiên hàng đầu trong danh sách chờ'],
+      GOLD: ['Tích điểm x1.5', 'Ưu tiên hàng đầu', 'Giảm 5% phí giao dịch chợ vé'],
+      PLATINUM: ['Tích điểm x2', 'VIP Priority', 'Giảm 10% phí giao dịch chợ vé', 'Hỗ trợ ưu tiên 24/7']
+    };
+
+    res.json({
+      loyaltyPoints: user.loyaltyPoints,
+      loyaltyTier: user.loyaltyTier,
+      badges: user.badges || [],
+      nextTier,
+      nextTierThreshold,
+      pointsToNextTier,
+      currentTierProgress: nextTierThreshold
+        ? Math.round(((user.loyaltyPoints - TIER_THRESHOLDS[user.loyaltyTier]) / (nextTierThreshold - TIER_THRESHOLDS[user.loyaltyTier])) * 100)
+        : 100,
+      benefits: tierBenefits[user.loyaltyTier] || [],
+      recentHistory,
+      thresholds: TIER_THRESHOLDS
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};

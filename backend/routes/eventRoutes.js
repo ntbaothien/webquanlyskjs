@@ -4,7 +4,8 @@ import {
   getEvents, getTrending, getFeatured, getTags, getLocations,
   getEventById, getSimilar, getReviews, createReview,
   registerEvent, holdSeats, bookEvent, reportEvent, getMyReport,
-  addToWaitlist, removeFromWaitlist, getWaitlistStatus, getMyWaitlist
+  addToWaitlist, removeFromWaitlist, getWaitlistStatus, getMyWaitlist,
+  getRecommended
 } from '../controllers/eventController.js';
 
 const router = Router();
@@ -15,6 +16,7 @@ router.get('/trending', getTrending);
 router.get('/featured', getFeatured);
 router.get('/tags', getTags);
 router.get('/locations', getLocations);
+router.get('/recommended', optionalAuth, getRecommended);
 
 // My waitlist (must be before /:id)
 router.get('/waitlist/my', auth, getMyWaitlist);

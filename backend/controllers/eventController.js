@@ -10,6 +10,7 @@ import Waitlist from '../models/Waitlist.js';
 import SeatHold from '../models/SeatHold.js';
 import { paginate } from '../utils/pagination.js';
 import { generateTicketCode } from '../utils/generateTicketCode.js';
+import { rewardPoints } from './userController.js';
 
 /**
  * GET /api/events — paginated, filterable
@@ -298,6 +299,9 @@ export const createReview = async (req, res) => {
       rating: parseInt(rating),
       comment
     });
+
+    // Thưởng điểm khi để lại đánh giá
+    try { await rewardPoints(req.user._id, 'LEAVE_REVIEW', `Đánh giá: ${event.title}`); } catch (e) {}
 
     res.status(201).json({ message: 'Đánh giá thành công!', data: review });
   } catch (error) {
@@ -615,6 +619,10 @@ export const bookEvent = async (req, res) => {
       });
     }
 
+    // Thưởng điểm mua vé & cập nhật preferences
+    try { await rewardPoints(req.user._id, 'BUY_TICKET', `Mua vé: ${event.title}`); } catch (e) {}
+    try { await updateUserPreferences(req.user._id, event); } catch (e) {}
+
     res.json({
       message: `Đặt ${qty} vé khu ${zone.name} thành công! 🎉`,
       booking,
@@ -769,6 +777,108 @@ export const getMyWaitlist = async (req, res) => {
     }).filter(Boolean);
 
     res.json({ data: result });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+/**
+ * Helper: Cập nhật preferences của user sau khi mua vé
+ */
+async function updateUserPreferences(userId, event) {
+  const updates = {};
+  if (event.category) {
+    updates[`preferences.categories.${event.category}`] = 1;
+  }
+  if (event.location) {
+    const locKey = event.location.split(',')[0].trim().replace(/\s+/g, '_').toUpperCase();
+    updates[`preferences.locations.${locKey}`] = 1;
+  }
+  event.tags?.forEach(tag => {
+    updates[`preferences.categories.TAG_${tag.toUpperCase()}`] = 0.5;
+  });
+  if (Object.keys(updates).length > 0) {
+    await User.findByIdAndUpdate(userId, { $inc: updates });
+  }
+}
+
+/**
+ * GET /api/events/recommended — Gợi ý sự kiện dựa trên preferences
+ */
+export const getRecommended = async (req, res) => {
+  try {
+    const now = new Date();
+
+    // Nếu user chưa đăng nhập → trả về trending
+    if (!req.user) {
+      const events = await Event.find({
+        status: 'PUBLISHED',
+        $or: [{ endDate: { $gte: now } }, { endDate: null }, { startDate: { $gte: now } }]
+      }).sort({ currentAttendees: -1, isFeatured: -1 }).limit(8).lean();
+      return res.json(events);
+    }
+
+    const user = await User.findById(req.user._id).select('preferences loyaltyTier').lean();
+    const prefs = user?.preferences || { categories: {}, locations: {} };
+    const catPrefs = prefs.categories instanceof Map ? Object.fromEntries(prefs.categories) : (prefs.categories || {});
+    const locPrefs = prefs.locations instanceof Map ? Object.fromEntries(prefs.locations) : (prefs.locations || {});
+
+    const hasPrefs = Object.keys(catPrefs).length > 0 || Object.keys(locPrefs).length > 0;
+
+    // Lấy sự kiện PUBLISHED chưa diễn ra
+    const candidates = await Event.find({
+      status: 'PUBLISHED',
+      $or: [{ endDate: { $gte: now } }, { endDate: null }, { startDate: { $gte: now } }]
+    }).lean();
+
+    if (!hasPrefs) {
+      // Không có lịch sử → trả theo trending
+      const trending = candidates.sort((a, b) => (b.currentAttendees - a.currentAttendees)).slice(0, 8);
+      return res.json(trending);
+    }
+
+    // Tính điểm tương đồng
+    const scored = candidates.map(event => {
+      let score = 0;
+
+      // Khớp category
+      const catScore = catPrefs[event.category] || 0;
+      score += catScore * 3;
+
+      // Khớp tags
+      (event.tags || []).forEach(tag => {
+        const tagKey = `TAG_${tag.toUpperCase()}`;
+        score += (catPrefs[tagKey] || 0) * 1.5;
+      });
+
+      // Khớp location
+      const locKey = (event.location || '').split(',')[0].trim().replace(/\s+/g, '_').toUpperCase();
+      score += (locPrefs[locKey] || 0) * 2;
+
+      // Boost isFeatured
+      if (event.isFeatured) score += 5;
+      // Boost popularity
+      score += Math.min(event.currentAttendees / 50, 3);
+
+      return { ...event, _score: score };
+    });
+
+    const sorted = scored
+      .filter(e => e._score > 0)  // chỉ giữ sự kiện có liên quan
+      .sort((a, b) => b._score - a._score)
+      .slice(0, 8);
+
+    // Nếu không đủ 8, bổ sung trending
+    if (sorted.length < 8) {
+      const existing = new Set(sorted.map(e => e._id.toString()));
+      const extras = candidates
+        .filter(e => !existing.has(e._id.toString()))
+        .sort((a, b) => b.currentAttendees - a.currentAttendees)
+        .slice(0, 8 - sorted.length);
+      sorted.push(...extras);
+    }
+
+    res.json(sorted);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

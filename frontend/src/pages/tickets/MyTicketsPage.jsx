@@ -120,6 +120,17 @@ export default function MyTicketsPage() {
                   </div>
                   <h4>{r.eventTitle || t('nav.events')}</h4>
                   <p className="event-meta">📍 {r.eventLocation || '—'}</p>
+                  {r.eventLocation && (
+                    <details style={{ marginTop: '0.5rem', marginBottom: '0.5rem' }}>
+                      <summary style={{ cursor: 'pointer', fontSize: '0.8rem', color: 'var(--purple)', fontWeight: 600 }}>🗺️ Xem bản đồ</summary>
+                      <div style={{ marginTop: '0.5rem', borderRadius: '8px', overflow: 'hidden', height: '150px' }}>
+                        <iframe
+                          width="100%" height="100%" style={{ border: 0 }} loading="lazy" allowFullScreen
+                          src={`https://www.google.com/maps?q=${encodeURIComponent(r.eventLocation)}&output=embed`}
+                        ></iframe>
+                      </div>
+                    </details>
+                  )}
                   <p className="event-meta">📅 {r.eventStartDate ? new Date(r.eventStartDate).toLocaleDateString(locale) : '—'}</p>
                   <p className="event-meta" style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>
                     {t('tickets.registeredAt')}: {r.registeredAt ? new Date(r.registeredAt).toLocaleDateString(locale) : '—'}
@@ -159,6 +170,19 @@ export default function MyTicketsPage() {
                     <span className={`reg-status-${b.status?.toLowerCase()}`}>{b.status}</span>
                   </div>
                   <h4>{b.eventTitle || t('nav.events')}</h4>
+                  <p className="event-meta">📍 {b.eventLocation || '—'}</p>
+                  {b.eventLocation && (
+                    <details style={{ marginTop: '0.5rem', marginBottom: '0.5rem' }}>
+                      <summary style={{ cursor: 'pointer', fontSize: '0.8rem', color: 'var(--purple)', fontWeight: 600 }}>🗺️ Xem bản đồ</summary>
+                      <div style={{ marginTop: '0.5rem', borderRadius: '8px', overflow: 'hidden', height: '150px' }}>
+                        <iframe
+                          width="100%" height="100%" style={{ border: 0 }} loading="lazy" allowFullScreen
+                          src={`https://www.google.com/maps?q=${encodeURIComponent(b.eventLocation)}&output=embed`}
+                        ></iframe>
+                      </div>
+                    </details>
+                  )}
+                  <p className="event-meta">📅 {b.eventStartDate ? new Date(b.eventStartDate).toLocaleDateString(locale) : '—'}</p>
                   <p className="event-meta">🪑 {t('tickets.zone')}: <strong style={{ color: 'var(--purple)' }}>{b.zoneName}</strong></p>
                   <p className="event-meta">🎟 {t('tickets.quantity')}: <strong>{b.quantity} {t('tickets.title').toLowerCase()}</strong></p>
                   <p className="event-meta" style={{ color: 'var(--purple)', fontWeight: 700 }}>

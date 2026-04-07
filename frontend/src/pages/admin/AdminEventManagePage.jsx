@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import axiosInstance from '../../utils/axiosInstance';
 import AdminLayout from '../../components/admin/AdminLayout';
+import SeatHeatmap from '../../components/events/SeatHeatmap';
 import './Admin.css';
 
 export default function AdminEventManagePage() {
@@ -16,6 +17,8 @@ export default function AdminEventManagePage() {
   const [regLoading, setRegLoading] = useState(false);
   const [rejectModal, setRejectModal] = useState(null); // { eventId, title }
   const [rejectReason, setRejectReason] = useState('');
+  const [heatmapEventId, setHeatmapEventId] = useState(null);
+  const [heatmapEventTitle, setHeatmapEventTitle] = useState('');
 
   const fetchEvents = async (f = filters) => {
     setLoading(true);
@@ -185,6 +188,20 @@ export default function AdminEventManagePage() {
                       <button className="admin-btn admin-btn-info" onClick={() => handleViewRegistrations(e.id, e.title)}>
                         👥
                       </button>
+                      
+                      {/* Heatmap button */}
+                      {(e.seatZones?.length > 0 || e.eventType === 'PAID' || !e.free) && (
+                        <button className="admin-btn" onClick={() => {
+                          setHeatmapEventId(e.id);
+                          setHeatmapEventTitle(e.title);
+                        }} style={{
+                          background: 'rgba(239,68,68,0.15)', color: '#ef4444',
+                          border: '1px solid rgba(239,68,68,0.3)'
+                        }} title="Heatmap phân bổ ghế">
+                          🔥 Heat
+                        </button>
+                      )}
+
                       {e.status !== 'CANCELLED' && (
                         <button className="admin-btn admin-btn-danger" onClick={() => handleDelete(e.id, e.title)}>
                           🗑️
@@ -362,6 +379,32 @@ export default function AdminEventManagePage() {
           </div>
         </div>
       )}
+
+      {/* Heatmap Modal */}
+      {heatmapEventId && (
+        <div style={{
+          position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', display: 'flex',
+          alignItems: 'flex-start', justifyContent: 'center', zIndex: 1000,
+          padding: '2rem 1rem', overflowY: 'auto'
+        }} onClick={e => e.target === e.currentTarget && setHeatmapEventId(null)}>
+          <div style={{ width: '100%', maxWidth: '680px' }}>
+            <div style={{
+              display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+              marginBottom: '1rem'
+            }}>
+              <h2 style={{ color: '#fff', margin: 0, fontWeight: 700, fontSize: '1.1rem' }}>
+                🔥 Heatmap — {heatmapEventTitle}
+              </h2>
+              <button onClick={() => setHeatmapEventId(null)} style={{
+                background: 'rgba(255,255,255,0.15)', border: 'none', color: '#fff',
+                borderRadius: '50%', width: '32px', height: '32px', cursor: 'pointer', fontSize: '1.1rem'
+              }}>✕</button>
+            </div>
+            <SeatHeatmap eventId={heatmapEventId} />
+          </div>
+        </div>
+      )}
+
     </AdminLayout>
   );
 }

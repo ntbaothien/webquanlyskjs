@@ -8,11 +8,19 @@ const orderSchema = new mongoose.Schema({
   paymentMethod: { type: String, default: 'BALANCE' },
   paymentStatus: {
     type: String,
-    enum: ['PENDING', 'PAID', 'FAILED', 'REFUNDED'],
+    enum: ['PENDING', 'PARTIAL_PAID', 'PAID', 'FAILED', 'REFUNDED'],
     default: 'PENDING'
   },
   couponCode: { type: String, default: '' },
-  discount: { type: Number, default: 0 }
+  discount: { type: Number, default: 0 },
+
+  // === Group Buying ===
+  splitType: {
+    type: String,
+    enum: ['SINGLE', 'GROUP'],
+    default: 'SINGLE'
+  },
+  seatHoldId: { type: mongoose.Schema.Types.ObjectId, ref: 'SeatHold', default: null }
 }, { timestamps: true });
 
 orderSchema.index({ userId: 1 });

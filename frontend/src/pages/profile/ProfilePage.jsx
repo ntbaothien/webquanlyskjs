@@ -77,6 +77,8 @@ export default function ProfilePage() {
     user?.role === 'ATTENDEE' && { label: t('profile.myRegistrations'), icon: '🎟️', to: '/my-registrations' },
     user?.role === 'ATTENDEE' && { label: t('profile.savedEvents'),      icon: '💾', to: '/profile/saved' },
     user?.role === 'ATTENDEE' && { label: t('profile.walletTopup'),      icon: '💰', to: '/wallet' },
+    { label: '🏆 Điểm thưởng & Hạng',      icon: '✨', to: '/profile/loyalty' },
+    { label: '🏪 Chợ bán lại vé',          icon: '🔄', to: '/marketplace' },
     (user?.role === 'ORGANIZER' || user?.role === 'ADMIN') && { label: t('profile.myEvents'),    icon: '📋', to: '/organizer/my-events' },
     (user?.role === 'ORGANIZER' || user?.role === 'ADMIN') && { label: t('profile.createEvent'), icon: '➕', to: '/organizer/events/create' },
     user?.role === 'ADMIN' && { label: t('profile.dashboard'),      icon: '📊', to: '/admin' },

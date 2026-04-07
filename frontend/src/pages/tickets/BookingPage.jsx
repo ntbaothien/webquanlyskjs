@@ -6,6 +6,8 @@ import useAuthStore from '../../store/authStore';
 import Navbar from '../../components/common/Navbar';
 import '../events/Events.css';
 
+const API = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+
 // Hook đếm ngược tới expiresAt
 function useHoldCountdown(expiresAt) {
   const [secondsLeft, setSecondsLeft] = useState(null);
@@ -48,6 +50,45 @@ export default function BookingPage() {
 
   // Đếm ngược số giây
   const secondsLeft = useHoldCountdown(holdExpiresAt);
+
+  const [showGroupBuy, setShowGroupBuy] = useState(false);
+  const [groupEmails, setGroupEmails] = useState('');
+  const [groupBuyLoading, setGroupBuyLoading] = useState(false);
+  const [groupBuyResult, setGroupBuyResult] = useState(null);
+
+  const handleCreateGroupBuy = async () => {
+    if (!selectedZone) return;
+    setGroupBuyLoading(true);
+    try {
+      const friendEmails = groupEmails.split(/[,\n]/).map(e => e.trim()).filter(Boolean);
+      // Xóa email của chính host nếu họ vô tình nhập vào box
+      const uniqueFriendEmails = [...new Set(friendEmails.filter(e => e !== user.email))];
+      
+      const allEmails = [user.email, ...uniqueFriendEmails];
+      const totalPeople = allEmails.length;
+      
+      const totalPrice = selectedZone.price * quantity;
+      const amountPerPerson = Math.floor(totalPrice / totalPeople);
+      const hostAmount = totalPrice - (amountPerPerson * uniqueFriendEmails.length);
+      
+      const members = allEmails.map(email => ({ 
+        email, 
+        amount: email === user.email ? hostAmount : amountPerPerson 
+      }));
+
+      const { data } = await axiosInstance.post(`/group-buy`, {
+        eventId,
+        zoneId: selectedZone._id || selectedZone.id,
+        quantity,
+        members,
+        hostAmount: 0 // Host được nhét chung vào array members rồi, nên không bị tính riêng nữa
+      });
+      setGroupBuyResult(data);
+    } catch (e) { 
+      alert(e.response?.data?.error || 'Lỗi tạo nhóm mua'); 
+    }
+    setGroupBuyLoading(false);
+  };
 
   // Khi countdown về 0 → hiện thị cảnh báo, reset zone
   useEffect(() => {
@@ -484,6 +525,21 @@ export default function BookingPage() {
                   >
                     {submitting ? t('booking.processing') : !isHoldValid ? '⏰ Giữ chỗ đã hết hạn' : t('booking.confirmBook')}
                   </button>
+
+                  {/* Group Buy Button */}
+                  {isHoldValid && quantity > 1 && (
+                    <button
+                      onClick={() => setShowGroupBuy(true)}
+                      style={{
+                        width: '100%', padding: '0.75rem', borderRadius: '10px', marginTop: '0.6rem',
+                        background: 'transparent', border: '1px solid rgba(34,197,94,0.4)',
+                        color: '#22c55e', fontWeight: 600, fontSize: '0.9rem', cursor: 'pointer'
+                      }}
+                    >
+                      👥 Mua nhóm — Chia hóa đơn
+                    </button>
+                  )}
+
                   <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textAlign: 'center', marginTop: '0.75rem' }}>
                     {t('booking.paymentNote')}
                   </p>
@@ -497,6 +553,105 @@ export default function BookingPage() {
           </div>
         </div>
       </div>
+
+      {/* Group Buy Modal */}
+      {showGroupBuy && (
+        <div style={{
+          position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', display: 'flex',
+          alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '1rem'
+        }} onClick={e => e.target === e.currentTarget && !groupBuyResult && setShowGroupBuy(false)}>
+          <div style={{
+            background: 'var(--bg-card)', borderRadius: '20px', padding: '2rem',
+            width: '100%', maxWidth: '480px', border: '1px solid var(--border)', boxShadow: 'var(--shadow-lg)'
+          }}>
+            {!groupBuyResult ? (
+              <>
+                <h2 style={{ margin: '0 0 0.5rem', fontWeight: 700 }}>👥 Tạo nhóm mua</h2>
+                <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginBottom: '1.5rem' }}>
+                  Chia đều hóa đơn cho {quantity} ghế khu {selectedZone?.name} với bạn bè<br/>
+                  Mỗi người: <strong style={{ color: 'var(--purple)' }}>{selectedZone ? Math.ceil(selectedZone.price * quantity / (groupEmails.split(/[,\n]/).filter(e => e.trim()).length + 1)).toLocaleString('vi-VN') : 0}đ</strong>
+                </p>
+
+                <div style={{ marginBottom: '1.25rem' }}>
+                  <label style={{ display: 'block', fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '0.5rem', fontWeight: 500 }}>
+                    Email thành viên (mỗi dòng hoặc cách nhau bởi dấu phẩy)
+                  </label>
+                  <textarea
+                    rows={4}
+                    value={groupEmails}
+                    onChange={e => setGroupEmails(e.target.value)}
+                    placeholder={'ban1@email.com\nban2@email.com'}
+                    style={{
+                      width: '100%', padding: '0.75rem 1rem', borderRadius: '12px',
+                      background: 'var(--bg-input)', border: '1px solid var(--border)',
+                      color: 'var(--text-primary)', fontSize: '0.9rem', resize: 'vertical'
+                    }}
+                  />
+                  <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.35rem' }}>
+                    💡 Thành viên nhận link thanh toán qua email. Bạn sẽ thanh toán trước phần của mình.
+                  </p>
+                </div>
+
+                <div style={{ display: 'flex', gap: '0.75rem' }}>
+                  <button onClick={() => setShowGroupBuy(false)} style={{
+                    flex: 1, padding: '0.75rem', borderRadius: '12px', background: 'var(--bg-input)',
+                    border: '1px solid var(--border)', color: 'var(--text-secondary)', cursor: 'pointer', fontWeight: 600
+                  }}>Huỷ</button>
+                  <button onClick={handleCreateGroupBuy} disabled={groupBuyLoading} style={{
+                    flex: 2, padding: '0.75rem', borderRadius: '12px',
+                    background: 'linear-gradient(135deg, #22c55e, #16a34a)',
+                    color: '#fff', border: 'none', cursor: 'pointer', fontWeight: 700
+                  }}>
+                    {groupBuyLoading ? '⏳ Đang tạo...' : '🚀 Tạo nhóm mua'}
+                  </button>
+                </div>
+              </>
+            ) : (
+              <div style={{ textAlign: 'center' }}>
+                <div style={{ fontSize: '3rem', marginBottom: '0.75rem' }}>🎉</div>
+                <h2 style={{ margin: '0 0 0.5rem', fontWeight: 700 }}>Nhóm mua đã tạo!</h2>
+                <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', marginBottom: '1.25rem' }}>
+                  Mã mời: <strong style={{ color: 'var(--purple)', letterSpacing: '2px', fontSize: '1.1rem' }}>{groupBuyResult.inviteCode}</strong>
+                </p>
+
+                <div style={{
+                  background: 'var(--bg-input)', borderRadius: '12px', padding: '1rem',
+                  marginBottom: '1.25rem', fontSize: '0.85rem', color: 'var(--text-secondary)', lineHeight: 1.6
+                }}>
+                  📱 Link thanh toán đã được gửi qua email cho các thành viên<br/>
+                  🔗 Hoặc chia sẻ trực tiếp link:
+                  <div style={{ marginTop: '0.5rem' }}>
+                    <code style={{
+                      background: 'var(--bg-card)', padding: '0.35rem 0.7rem', borderRadius: '8px',
+                      fontSize: '0.8rem', color: 'var(--purple)', wordBreak: 'break-all'
+                    }}>
+                      {window.location.origin}/group-checkout/{groupBuyResult.inviteCode}
+                    </code>
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', gap: '0.75rem' }}>
+                  <button onClick={() => {
+                    navigator.clipboard.writeText(`${window.location.origin}/group-checkout/${groupBuyResult.inviteCode}`);
+                    alert('Đã sao chép link!');
+                  }} style={{
+                    flex: 1, padding: '0.75rem', borderRadius: '12px',
+                    background: 'var(--bg-input)', border: '1px solid var(--border)',
+                    color: 'var(--text-primary)', cursor: 'pointer', fontWeight: 600
+                  }}>📋 Sao chép link</button>
+                  <button onClick={() => {
+                    setShowGroupBuy(false);
+                    navigate(`/group-checkout/${groupBuyResult.inviteCode}`);
+                  }} style={{
+                    flex: 1, padding: '0.75rem', borderRadius: '12px',
+                    background: 'var(--accent)', color: '#fff', border: 'none', cursor: 'pointer', fontWeight: 700
+                  }}>Đến trang thanh toán →</button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
     </>
   );
 }

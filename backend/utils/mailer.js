@@ -427,3 +427,97 @@ export async function sendEventReminderEmail(to, event, fullName) {
 
   return info;
 }
+
+/**
+ * Send group buy invite email
+ * @param {string} to - Recipient email
+ * @param {object} inviteData - Group buy invite data
+ */
+export async function sendGroupBuyInviteEmail(to, inviteData) {
+  const transporter = await createTransporter();
+
+  const html = `
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <title>Mời tham gia thanh toán nhóm vé bù - EventHub</title>
+</head>
+<body style="margin:0;padding:0;background:#0f0f1a;font-family:'Segoe UI',Arial,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#0f0f1a;padding:32px 16px;">
+    <tr>
+      <td align="center">
+        <table width="520" cellpadding="0" cellspacing="0"
+          style="background:#16213e;border-radius:16px;overflow:hidden;border:1px solid rgba(255,255,255,0.1);">
+          <tr>
+            <td style="background:linear-gradient(135deg,#22c55e,#16a34a);padding:28px 32px;text-align:center;">
+              <h1 style="color:#fff;margin:0;font-size:26px;letter-spacing:-0.5px;">👥 EventHub</h1>
+              <p style="color:rgba(255,255,255,1);margin:6px 0 0;font-size:14px;font-weight:bold;">Lời mời mua nhóm vé</p>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:28px 32px;">
+              <p style="color:rgba(255,255,255,0.75);font-size:15px;margin:0 0 24px;">
+                Xin chào <strong style="color:#fff;">${to}</strong>,<br>
+                Bạn có một lời mời tham gia mua chung vé từ <strong style="color:#22c55e;">${inviteData.hostName}</strong> cho sự kiện dưới đây:
+              </p>
+              
+              <div style="background:#0f0f1a;border:1px solid rgba(255,255,255,0.15);border-radius:12px;padding:20px;margin-bottom:24px;">
+                <h2 style="color:#fff;margin:0 0 10px;font-size:18px;">🎪 ${inviteData.eventTitle}</h2>
+                <table width="100%" cellpadding="0" cellspacing="0">
+                  <tr>
+                    <td style="padding:4px 0;color:rgba(255,255,255,0.65);font-size:13px;">
+                      🪑 <strong>Khu vực:</strong> ${inviteData.zoneName}
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="padding:4px 0;color:rgba(255,255,255,0.65);font-size:13px;">
+                      💳 <strong>Phần thanh toán của bạn:</strong> <strong style="color:#a78bfa;">${inviteData.amount.toLocaleString('vi-VN')}đ</strong>
+                    </td>
+                  </tr>
+                  <tr>
+                    <td style="padding:4px 0;color:rgba(255,255,255,0.65);font-size:13px;">
+                      ⏳ <strong>Hết hạn lúc:</strong> ${new Date(inviteData.expiresAt).toLocaleTimeString('vi-VN')}
+                    </td>
+                  </tr>
+                </table>
+              </div>
+
+              <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;">
+                <tr>
+                  <td align="center">
+                    <a href="${inviteData.shareLink}"
+                      style="display:inline-block;background:linear-gradient(135deg,#22c55e,#16a34a);
+                      color:#fff;text-decoration:none;padding:12px 32px;border-radius:8px;
+                      font-weight:600;font-size:15px;letter-spacing:0.3px;">
+                      🔗 Nhấp vào đây để thanh toán
+                    </a>
+                  </td>
+                </tr>
+              </table>
+
+              <p style="color:rgba(255,255,255,0.4);font-size:12px;margin:24px 0 0;text-align:center;">
+                Email này được gửi tự động từ EventHub. Vui lòng không reply email này.
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`;
+
+  const info = await transporter.sendMail({
+    from: process.env.MAIL_FROM || '"EventHub" <noreply@eventhub.vn>',
+    to,
+    subject: `👥 Thanh toán nhóm mua vé: ${inviteData.eventTitle} — EventHub`,
+    html
+  });
+
+  if (!process.env.MAIL_USER) {
+    console.log('📧 Preview URL:', nodemailer.getTestMessageUrl(info));
+  }
+
+  return info;
+}

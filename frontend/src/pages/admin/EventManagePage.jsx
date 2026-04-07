@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import axiosInstance from '../../utils/axiosInstance';
 import Navbar from '../../components/common/Navbar';
+import SeatHeatmap from '../../components/events/SeatHeatmap';
 import '../events/Events.css';
 
 export default function MyEventsPage() {
@@ -10,6 +11,8 @@ export default function MyEventsPage() {
   const [page, setPage] = useState(0);
   const [loading, setLoading] = useState(true);
   const [msg, setMsg] = useState({ text: '', type: '' });
+  const [heatmapEventId, setHeatmapEventId] = useState(null);
+  const [heatmapEventTitle, setHeatmapEventTitle] = useState('');
 
   const fetchEvents = async (p = page, s = statusFilter) => {
     setLoading(true);
@@ -75,17 +78,28 @@ export default function MyEventsPage() {
               </thead>
               <tbody>
                 {data.content.map(e => (
-                  <tr key={e.id}>
-                    <td><strong style={{ color: '#fff' }}>{e.title}</strong></td>
+                  <tr key={e.id || e._id}>
+                    <td><strong style={{ color: 'var(--text-primary)' }}>{e.title}</strong></td>
                     <td>{e.location}</td>
                     <td>{e.startDate ? new Date(e.startDate).toLocaleDateString('vi-VN') : '—'}</td>
                     <td>{e.currentAttendees} / {e.maxCapacity || '∞'}</td>
                     <td><span className={`event-status-tag status-${e.status?.toLowerCase()}`} style={{ position: 'static' }}>{e.status}</span></td>
-                    <td style={{ display: 'flex', gap: '0.4rem' }}>
-                      <Link to={`/organizer/events/${e.id}/edit`} className="btn-sm btn-info" style={{ textDecoration: 'none' }}>✏️ Sửa</Link>
-                      <Link to={`/organizer/events/${e.id}/registrations`} className="btn-sm btn-success" style={{ textDecoration: 'none' }}>👥</Link>
-                      <Link to={`/organizer/events/${e.id}/emails`} className="btn-sm btn-info" style={{ textDecoration: 'none' }}>📧 Email</Link>
-                      <button className="btn-sm btn-danger" onClick={() => handleDelete(e.id)}>🗑</button>
+                    <td style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
+                      <Link to={`/organizer/events/${e.id || e._id}/edit`} className="btn-sm btn-info" style={{ textDecoration: 'none' }}>✏️ Sửa</Link>
+                      <Link to={`/organizer/events/${e.id || e._id}/registrations`} className="btn-sm btn-success" style={{ textDecoration: 'none' }}>👥</Link>
+                      <Link to={`/organizer/events/${e.id || e._id}/emails`} className="btn-sm btn-info" style={{ textDecoration: 'none' }}>📧 Email</Link>
+                      {/* Heatmap button — only for events with seatZones */}
+                      {(e.seatZones?.length > 0 || e.eventType === 'PAID') && (
+                        <button className="btn-sm" onClick={() => {
+                          setHeatmapEventId(e.id || e._id);
+                          setHeatmapEventTitle(e.title);
+                        }} style={{
+                          background: 'rgba(239,68,68,0.15)', color: '#ef4444',
+                          border: '1px solid rgba(239,68,68,0.3)', borderRadius: '8px',
+                          padding: '0.3rem 0.6rem', fontSize: '0.8rem', cursor: 'pointer'
+                        }}>🔥 Heat</button>
+                      )}
+                      <button className="btn-sm btn-danger" onClick={() => handleDelete(e.id || e._id)}>🗑</button>
                     </td>
                   </tr>
                 ))}
@@ -101,6 +115,31 @@ export default function MyEventsPage() {
           </div>
         )}
       </div>
+
+      {/* Heatmap Modal */}
+      {heatmapEventId && (
+        <div style={{
+          position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.75)', display: 'flex',
+          alignItems: 'flex-start', justifyContent: 'center', zIndex: 1000,
+          padding: '2rem 1rem', overflowY: 'auto'
+        }} onClick={e => e.target === e.currentTarget && setHeatmapEventId(null)}>
+          <div style={{ width: '100%', maxWidth: '680px' }}>
+            <div style={{
+              display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+              marginBottom: '1rem'
+            }}>
+              <h2 style={{ color: '#fff', margin: 0, fontWeight: 700, fontSize: '1.1rem' }}>
+                🔥 Heatmap — {heatmapEventTitle}
+              </h2>
+              <button onClick={() => setHeatmapEventId(null)} style={{
+                background: 'rgba(255,255,255,0.15)', border: 'none', color: '#fff',
+                borderRadius: '50%', width: '32px', height: '32px', cursor: 'pointer', fontSize: '1.1rem'
+              }}>×</button>
+            </div>
+            <SeatHeatmap eventId={heatmapEventId} />
+          </div>
+        </div>
+      )}
     </>
   );
 }

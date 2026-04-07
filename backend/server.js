@@ -27,6 +27,8 @@ import resourceRoutes from './routes/resourceRoutes.js';
 import forumRoutes from './routes/forumRoutes.js';
 import pollRoutes from './routes/pollRoutes.js';
 import notificationRoutes from './routes/notificationRoutes.js';
+import resellRoutes from './routes/resellRoutes.js';
+import groupBuyRoutes from './routes/groupBuyRoutes.js';
 import ChatMessage from './models/ChatMessage.js';
 import { getBotReply } from './utils/aiBot.js';
 
@@ -75,6 +77,8 @@ app.use('/api/resources', resourceRoutes);
 app.use('/api/forum', forumRoutes);
 app.use('/api/polls', pollRoutes);
 app.use('/api/notifications', notificationRoutes);
+app.use('/api/marketplace', resellRoutes);
+app.use('/api/group-buy', groupBuyRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => res.json({ status: 'ok', time: new Date() }));

@@ -8,6 +8,7 @@ import HeroBanner from '../../components/common/HeroBanner';
 import CategoryBar, { getCategoryInfo } from '../../components/common/CategoryBar';
 import TrendingSection from '../../components/common/TrendingSection';
 import { SkeletonList } from '../../components/common/Skeleton';
+import RecommendedList from '../../components/events/RecommendedList';
 import './Events.css';
 
 export default function EventListPage() {
@@ -375,9 +376,12 @@ export default function EventListPage() {
           </div>
         )}
 
-        {/* Trending Section — only when no filters active */}
+        {/* Recommended + Trending Section — only when no filters active */}
         {!keyword && !tag && !freeFilter && !timeStatus && !organizer && page === 0 && (
-          <TrendingSection events={trending} />
+          <>
+            <RecommendedList />
+            <TrendingSection events={trending} />
+          </>
         )}
 
         {/* ── Section header ── */}

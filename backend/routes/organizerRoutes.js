@@ -3,7 +3,7 @@ import { auth } from '../middleware/auth.js';
 import { role } from '../middleware/role.js';
 import { upload } from '../middleware/upload.js';
 import {
-  getMyEvents, createEvent, updateEvent, deleteEvent, getEventRegistrations, getEventWaitlist
+  getMyEvents, createEvent, updateEvent, deleteEvent, getEventRegistrations, getEventWaitlist, getEventHeatmap
 } from '../controllers/organizerController.js';
 
 const router = Router();
@@ -19,5 +19,6 @@ router.put('/events/:id', upload.single('bannerFile'), updateEvent);
 router.delete('/events/:id', deleteEvent);
 router.get('/events/:id/registrations', getEventRegistrations);
 router.get('/events/:id/waitlist', getEventWaitlist);
+router.get('/events/:eventId/heatmap', getEventHeatmap);
 
 export default router;

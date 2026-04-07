@@ -19,7 +19,28 @@ const userSchema = new mongoose.Schema({
     secret: { type: String, default: '' }
   },
   resetPasswordToken: { type: String, default: null },
-  resetPasswordExpires: { type: Date, default: null }
+  resetPasswordExpires: { type: Date, default: null },
+
+  // === Gamification ===
+  loyaltyPoints: { type: Number, default: 0 },
+  loyaltyTier: {
+    type: String,
+    enum: ['BRONZE', 'SILVER', 'GOLD', 'PLATINUM'],
+    default: 'BRONZE'
+  },
+  badges: [{ type: String }],
+  pointHistory: [{
+    action: { type: String },
+    points: { type: Number },
+    description: { type: String },
+    earnedAt: { type: Date, default: Date.now }
+  }],
+
+  // === Recommendation Engine ===
+  preferences: {
+    categories: { type: Map, of: Number, default: {} },
+    locations: { type: Map, of: Number, default: {} }
+  }
 }, { timestamps: true });
 
 // Do NOT return password in JSON
