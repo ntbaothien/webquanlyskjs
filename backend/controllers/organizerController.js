@@ -3,6 +3,7 @@ import Registration from '../models/Registration.js';
 import Booking from '../models/Booking.js';
 import Waitlist from '../models/Waitlist.js';
 import User from '../models/User.js';
+import Notification from '../models/Notification.js';
 import { paginate } from '../utils/pagination.js';
 
 /**
@@ -47,6 +48,12 @@ export const createEvent = async (req, res) => {
 
     const category = mapTagToCategory(tags[0]);
 
+    // Nếu Organizer muốn PUBLISHED thì chuyển sang PENDING_APPROVAL (cần Admin duyệt)
+    let finalStatus = status || 'DRAFT';
+    if (finalStatus === 'PUBLISHED') {
+      finalStatus = 'PENDING_APPROVAL';
+    }
+
     const event = await Event.create({
       title,
       description,
@@ -54,7 +61,7 @@ export const createEvent = async (req, res) => {
       startDate: startDate || undefined,
       endDate: endDate || undefined,
       maxCapacity: parseInt(maxCapacity) || 0,
-      status: status || 'DRAFT',
+      status: finalStatus,
       tags,
       category,
       free,
@@ -64,7 +71,40 @@ export const createEvent = async (req, res) => {
       bannerImagePath: req.file ? `/uploads/${req.file.filename}` : ''
     });
 
-    res.status(201).json(event);
+    // Thông báo cho organizer về trạng thái
+    if (finalStatus === 'PENDING_APPROVAL') {
+      await Notification.create({
+        userId:   req.user._id,
+        title:    'Sự kiện đang chờ phê duyệt',
+        message:  `Sự kiện "${event.title}" đã được gửi lên Admin để phê duyệt.`,
+        type:     'SYSTEM',
+        link:     `/organizer/events`
+      });
+
+      // Thông báo cho tất cả Admin
+      const admins = await User.find({ role: 'ADMIN' }).select('_id').lean();
+      const io = req.app.get('io');
+      for (const admin of admins) {
+        await Notification.create({
+          userId:   admin._id,
+          title:    'Sự kiện mới cần phê duyệt',
+          message:  `Organizer "${req.user.fullName}" đã gửi sự kiện "${event.title}" để được phê duyệt.`,
+          type:     'SYSTEM',
+          link:     `/admin/events?status=PENDING_APPROVAL`
+        });
+        if (io) {
+          io.to(`user:${admin._id}`).emit('notification', {
+            title:   'Sự kiện mới cần phê duyệt',
+            message: `Organizer "${req.user.fullName}" đã gửi "${event.title}"`
+          });
+        }
+      }
+    }
+
+    res.status(201).json({
+      ...event.toObject(),
+      _pendingApproval: finalStatus === 'PENDING_APPROVAL'
+    });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -90,7 +130,6 @@ export const updateEvent = async (req, res) => {
     if (startDate) event.startDate = startDate;
     if (endDate) event.endDate = endDate;
     if (maxCapacity !== undefined) event.maxCapacity = parseInt(maxCapacity) || 0;
-    if (status) event.status = status;
     if (tagsInput !== undefined) {
       event.tags = tagsInput.split(',').map(t => t.trim()).filter(Boolean);
       event.category = mapTagToCategory(event.tags[0]);
@@ -107,8 +146,51 @@ export const updateEvent = async (req, res) => {
       event.bannerImagePath = `/uploads/${req.file.filename}`;
     }
 
+    // Nếu Organizer (không phải Admin) cố gắng set status=PUBLISHED → PENDING_APPROVAL
+    let pendingApproval = false;
+    if (status && req.user.role !== 'ADMIN') {
+      if (status === 'PUBLISHED') {
+        event.status = 'PENDING_APPROVAL';
+        event.rejectionReason = ''; // reset lý do từ chối (nếu đang submit lại)
+        pendingApproval = true;
+      } else {
+        event.status = status;
+      }
+    } else if (status && req.user.role === 'ADMIN') {
+      // Admin có thể set bất kỳ status nào
+      event.status = status;
+    }
+
     await event.save();
-    res.json(event);
+
+    if (pendingApproval) {
+      await Notification.create({
+        userId:  req.user._id,
+        title:   'Sự kiện đã gửi phê duyệt',
+        message: `Sự kiện "${event.title}" đã được gửi lên Admin để phê duyệt.`,
+        type:    'SYSTEM',
+        link:    `/organizer/events`
+      });
+      const admins = await User.find({ role: 'ADMIN' }).select('_id').lean();
+      const io = req.app.get('io');
+      for (const admin of admins) {
+        await Notification.create({
+          userId:   admin._id,
+          title:    'Sự kiện cần phê duyệt',
+          message:  `"${req.user.fullName}" gửi cập nhật sự kiện "${event.title}" để phê duyệt.`,
+          type:     'SYSTEM',
+          link:     `/admin/events?status=PENDING_APPROVAL`
+        });
+        if (io) {
+          io.to(`user:${admin._id}`).emit('notification', {
+            title:   'Sự kiện cần phê duyệt',
+            message: `"${req.user.fullName}" gửi cập nhật "${event.title}"`
+          });
+        }
+      }
+    }
+
+    res.json({ ...event.toObject(), _pendingApproval: pendingApproval });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

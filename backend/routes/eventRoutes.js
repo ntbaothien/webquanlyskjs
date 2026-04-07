@@ -3,7 +3,7 @@ import { auth, optionalAuth } from '../middleware/auth.js';
 import {
   getEvents, getTrending, getFeatured, getTags, getLocations,
   getEventById, getSimilar, getReviews, createReview,
-  registerEvent, bookEvent, reportEvent, getMyReport,
+  registerEvent, holdSeats, bookEvent, reportEvent, getMyReport,
   addToWaitlist, removeFromWaitlist, getWaitlistStatus, getMyWaitlist
 } from '../controllers/eventController.js';
 
@@ -32,6 +32,7 @@ router.post('/:id/reviews', auth, createReview);
 
 // Registration & Booking
 router.post('/:id/register', auth, registerEvent);
+router.post('/:id/hold', auth, holdSeats);  // Giữ chỗ 5 phút
 router.post('/:id/book', auth, bookEvent);
 
 // Report / Violation

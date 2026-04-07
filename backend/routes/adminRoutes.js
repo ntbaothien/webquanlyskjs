@@ -6,6 +6,7 @@ import {
   getUsers, getUserDetail, updateUser, deleteUser,
   toggleUserLock, changeUserRole,
   getAllEvents, updateEvent, deleteEvent, getEventRegistrations,
+  approveEvent, rejectEvent, getPendingEvents,
   getViolationReports, updateViolationReport,
   getTopups, processTopup
 } from '../controllers/adminController.js';
@@ -27,9 +28,12 @@ router.post('/users/:id/toggle', toggleUserLock);
 router.post('/users/:id/role', changeUserRole);
 
 router.get('/events', getAllEvents);
+router.get('/events/pending', getPendingEvents);     // Sự kiện chờ duyệt
 router.put('/events/:id', updateEvent);
 router.delete('/events/:id', deleteEvent);
 router.get('/events/:id/registrations', getEventRegistrations);
+router.post('/events/:id/approve', approveEvent);   // Duyệt sự kiện
+router.post('/events/:id/reject', rejectEvent);     // Từ chối sự kiện
 
 // Top-up management
 router.get('/topups', getTopups);

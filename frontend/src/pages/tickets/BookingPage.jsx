@@ -1,10 +1,28 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import axiosInstance from '../../utils/axiosInstance';
 import useAuthStore from '../../store/authStore';
 import Navbar from '../../components/common/Navbar';
 import '../events/Events.css';
+
+// Hook đếm ngược tới expiresAt
+function useHoldCountdown(expiresAt) {
+  const [secondsLeft, setSecondsLeft] = useState(null);
+
+  useEffect(() => {
+    if (!expiresAt) { setSecondsLeft(null); return; }
+    const tick = () => {
+      const diff = Math.floor((new Date(expiresAt) - new Date()) / 1000);
+      setSecondsLeft(Math.max(0, diff));
+    };
+    tick();
+    const timer = setInterval(tick, 1000);
+    return () => clearInterval(timer);
+  }, [expiresAt]);
+
+  return secondsLeft;
+}
 
 export default function BookingPage() {
   const { id: eventId } = useParams();
@@ -21,12 +39,35 @@ export default function BookingPage() {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
 
-  // Coupon state
-  const [couponCode, setCouponCode] = useState('');
-  const [couponDiscount, setCouponDiscount] = useState(0);
-  const [couponInfo, setCouponInfo] = useState(null);
-  const [couponError, setCouponError] = useState('');
-  const [couponLoading, setCouponLoading] = useState(false);
+  // Seat Hold state
+  const [holdExpiresAt, setHoldExpiresAt] = useState(null);  // thời điểm hết hạn
+  const [holdLoading, setHoldLoading] = useState(false);     // đang gọi API hold
+  const [holdError, setHoldError] = useState('');             // lỗi hold
+  const [holdExpiredAlert, setHoldExpiredAlert] = useState(false); // hiện thị cảnh báo
+  const prevSecondsRef = useRef(null);
+
+  // Đếm ngược số giây
+  const secondsLeft = useHoldCountdown(holdExpiresAt);
+
+  // Khi countdown về 0 → hiện thị cảnh báo, reset zone
+  useEffect(() => {
+    if (secondsLeft === null) return;
+    if (prevSecondsRef.current !== null && prevSecondsRef.current > 0 && secondsLeft === 0) {
+      setHoldExpiredAlert(true);
+      setSelectedZone(null);
+      setHoldExpiresAt(null);
+    }
+    prevSecondsRef.current = secondsLeft;
+  }, [secondsLeft]);
+
+  const formatCountdown = (secs) => {
+    if (secs === null || secs === undefined) return '';
+    const m = Math.floor(secs / 60);
+    const s = secs % 60;
+    return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+  };
+
+  const isHoldValid = holdExpiresAt && secondsLeft !== null && secondsLeft > 0;
 
   useEffect(() => {
     if (!user) { navigate('/login'); return; }
@@ -45,6 +86,36 @@ export default function BookingPage() {
       .catch(() => navigate('/'))
       .finally(() => setLoading(false));
   }, [eventId]);
+
+  // Coupon state (phải có sau khi có zone)
+  const [couponCode, setCouponCode] = useState('');
+  const [couponDiscount, setCouponDiscount] = useState(0);
+  const [couponInfo, setCouponInfo] = useState(null);
+  const [couponError, setCouponError] = useState('');
+  const [couponLoading, setCouponLoading] = useState(false);
+
+  // Gọi API giữ chỗ khi user chọn zone
+  const handleSelectZone = async (zone) => {
+    if (selectedZone && (selectedZone._id || selectedZone.id) === (zone._id || zone.id)) return; // đã chọn rồi
+    setSelectedZone(zone);
+    setQuantity(1);
+    removeCoupon();
+    setError('');
+    setHoldError('');
+    setHoldExpiredAlert(false);
+    setHoldExpiresAt(null);
+    setHoldLoading(true);
+    try {
+      const zoneId = zone._id || zone.id;
+      const { data } = await axiosInstance.post(`/events/${eventId}/hold`, { zoneId, quantity: 1 });
+      setHoldExpiresAt(data.expiresAt);
+    } catch (err) {
+      setHoldError(err.response?.data?.error || 'Không thể giữ chỗ lúc này');
+      setSelectedZone(null);
+    } finally {
+      setHoldLoading(false);
+    }
+  };
 
   // Apply coupon
   const handleApplyCoupon = async () => {
@@ -77,6 +148,12 @@ export default function BookingPage() {
 
   const handleBook = async () => {
     if (!selectedZone) { setError(t('booking.selectZoneError')); return; }
+    if (!isHoldValid) {
+      setHoldExpiredAlert(true);
+      setSelectedZone(null);
+      setHoldExpiresAt(null);
+      return;
+    }
     setError('');
     setSubmitting(true);
     try {
@@ -92,13 +169,27 @@ export default function BookingPage() {
 
       navigate('/my-tickets', { state: { success: true, message: `Đặt ${quantity} vé khu ${selectedZone.name} thành công! 🎉` } });
     } catch (err) {
-      setError(err.response?.data?.error || t('common.error'));
+      const errData = err.response?.data;
+      if (errData?.holdExpired) {
+        setHoldExpiredAlert(true);
+        setSelectedZone(null);
+        setHoldExpiresAt(null);
+        setError('');
+      } else if (errData?.soldOut) {
+        setError(errData.error || 'Hết ghế, vui lòng chọn khu vực khác');
+        setSelectedZone(null);
+        setHoldExpiresAt(null);
+        // Reload zones
+        axiosInstance.get(`/events/${eventId}`).then(({ data }) => setZones(data.event?.seatZones || []));
+      } else {
+        setError(errData?.error || t('common.error'));
+      }
     } finally {
       setSubmitting(false);
     }
   };
 
-  if (loading) return <><Navbar /><div className="loading-state">{t('booking.loading')}</div></>;
+  if (loading) return <><Navbar /><div className="loading-state">{t('booking.loading')}</div></>
   if (!event) return null;
 
   const totalPriceBeforeDiscount = selectedZone ? selectedZone.price * quantity : 0;
@@ -111,6 +202,25 @@ export default function BookingPage() {
         <button className="btn-back" onClick={() => navigate(`/events/${eventId}`)}>{t('booking.back')}</button>
         <h1 className="page-title" style={{ marginBottom: '0.25rem' }}>🪑 {t('booking.title')}</h1>
         <p style={{ color: 'var(--text-secondary)', marginBottom: '2rem' }}>{event.title}</p>
+
+        {/* Hold Expired Alert */}
+        {holdExpiredAlert && (
+          <div style={{
+            background: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.4)',
+            borderRadius: '14px', padding: '1rem 1.25rem', marginBottom: '1.5rem',
+            display: 'flex', alignItems: 'center', gap: '0.75rem', color: '#fca5a5'
+          }}>
+            <span style={{ fontSize: '1.4rem' }}>⏰</span>
+            <div>
+              <strong style={{ display: 'block', marginBottom: '0.2rem' }}>Đã hết thời gian giữ chỗ!</strong>
+              <span style={{ fontSize: '0.88rem', opacity: 0.85 }}>Vui lòng chọn lại khu vực ghế để tiếp tục đặt vé.</span>
+            </div>
+            <button
+              onClick={() => setHoldExpiredAlert(false)}
+              style={{ marginLeft: 'auto', background: 'none', border: 'none', color: '#fca5a5', fontSize: '1.2rem', cursor: 'pointer' }}
+            >✕</button>
+          </div>
+        )}
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: '2rem' }}>
           {/* Left - Zone selection */}
@@ -125,7 +235,7 @@ export default function BookingPage() {
                 return (
                   <div
                     key={zoneId}
-                    onClick={() => { if (!isSoldOut) { setSelectedZone(zone); setError(''); removeCoupon(); } }}
+                    onClick={() => { if (!isSoldOut && !holdLoading) handleSelectZone(zone); }}
                     style={{
                       background: isSelected ? 'rgba(108,99,255,0.15)' : 'var(--bg-input)',
                       border: `2px solid ${isSelected ? zone.color || '#6c63ff' : 'var(--border)'}`,
@@ -178,8 +288,21 @@ export default function BookingPage() {
               })}
             </div>
 
+            {/* Seat Hold Countdown */}
+            {holdLoading && (
+              <div style={{ marginTop: '1rem', padding: '0.75rem 1rem', background: 'rgba(108,99,255,0.1)', borderRadius: '10px', color: '#a78bfa', fontSize: '0.88rem' }}>
+                ⏳ Đang giữ chỗ cho bạn...
+              </div>
+            )}
+
+            {holdError && (
+              <div style={{ marginTop: '1rem', padding: '0.75rem 1rem', background: 'rgba(239,68,68,0.1)', borderRadius: '10px', color: '#fca5a5', fontSize: '0.88rem' }}>
+                ❌ {holdError}
+              </div>
+            )}
+
             {/* Quantity */}
-            {selectedZone && (
+            {selectedZone && isHoldValid && (
               <div style={{
                 marginTop: '1.5rem',
                 background: 'var(--bg-input)',
@@ -232,6 +355,30 @@ export default function BookingPage() {
                   📅 {new Date(event.startDate).toLocaleDateString(locale)}
                 </p>
               </div>
+
+              {/* Seat Hold Countdown Badge */}
+              {isHoldValid && (
+                <div style={{
+                  background: secondsLeft <= 60 ? 'rgba(239,68,68,0.12)' : 'rgba(16,185,129,0.12)',
+                  border: `1px solid ${secondsLeft <= 60 ? 'rgba(239,68,68,0.4)' : 'rgba(16,185,129,0.4)'}`,
+                  borderRadius: '12px', padding: '0.75rem 1rem', marginBottom: '1rem',
+                  display: 'flex', alignItems: 'center', justifyContent: 'space-between'
+                }}>
+                  <div>
+                    <div style={{ fontSize: '0.76rem', color: secondsLeft <= 60 ? '#fca5a5' : '#6ee7b7', marginBottom: '0.2rem' }}>
+                      ⏳ Thời gian giữ chỗ
+                    </div>
+                    <div style={{ fontSize: '1.5rem', fontWeight: 800, color: secondsLeft <= 60 ? '#ef4444' : '#10b981', fontVariantNumeric: 'tabular-nums', letterSpacing: '0.05em' }}>
+                      {formatCountdown(secondsLeft)}
+                    </div>
+                  </div>
+                  {secondsLeft <= 60 && (
+                    <div style={{ fontSize: '0.76rem', color: '#fca5a5', textAlign: 'right', maxWidth: 100 }}>
+                      Sắp hết!<br/>Hãy xác nhận nhanh
+                    </div>
+                  )}
+                </div>
+              )}
 
               {selectedZone ? (
                 <>
@@ -302,15 +449,17 @@ export default function BookingPage() {
 
                   <button
                     onClick={handleBook}
-                    disabled={submitting}
+                    disabled={submitting || !isHoldValid}
                     style={{
                       width: '100%', padding: '0.9rem', borderRadius: '10px',
-                      background: submitting ? 'rgba(108,99,255,0.5)' : 'linear-gradient(135deg, #6c63ff, #a78bfa)',
+                      background: submitting || !isHoldValid
+                        ? 'rgba(108,99,255,0.35)'
+                        : 'linear-gradient(135deg, #6c63ff, #a78bfa)',
                       color: '#fff', border: 'none', fontWeight: 700, fontSize: '1rem',
-                      cursor: submitting ? 'not-allowed' : 'pointer', transition: 'all 0.2s'
+                      cursor: submitting || !isHoldValid ? 'not-allowed' : 'pointer', transition: 'all 0.2s'
                     }}
                   >
-                    {submitting ? t('booking.processing') : t('booking.confirmBook')}
+                    {submitting ? t('booking.processing') : !isHoldValid ? '⏰ Giữ chỗ đã hết hạn' : t('booking.confirmBook')}
                   </button>
                   <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textAlign: 'center', marginTop: '0.75rem' }}>
                     {t('booking.paymentNote')}

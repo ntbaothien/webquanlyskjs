@@ -19,9 +19,10 @@ const eventSchema = new mongoose.Schema({
   currentAttendees: { type: Number, default: 0 },
   status: {
     type: String,
-    enum: ['DRAFT', 'PUBLISHED', 'CANCELLED', 'COMPLETED'],
+    enum: ['DRAFT', 'PENDING_APPROVAL', 'PUBLISHED', 'CANCELLED', 'COMPLETED'],
     default: 'DRAFT'
   },
+  rejectionReason: { type: String, default: '' }, // Lý do từ chối (nếu có)
   tags: [{ type: String }],
   category: {
     type: String,

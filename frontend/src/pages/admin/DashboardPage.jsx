@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router-dom';
 import axiosInstance from '../../utils/axiosInstance';
 import AdminLayout from '../../components/admin/AdminLayout';
 import useThemeStore from '../../store/themeStore';
@@ -21,6 +22,7 @@ export default function DashboardPage() {
   const locale = i18n.language === 'vi' ? 'vi-VN' : 'en-US';
   const { theme } = useThemeStore();
   const isLight = theme === 'light';
+  const navigate = useNavigate();
 
   // Theme-aware chart colors
   const chartTooltip = {
@@ -62,9 +64,10 @@ export default function DashboardPage() {
   }
 
   const statCards = [
-    { icon: '📅', value: stats?.totalEvents ?? 0,         label: t('admin.totalEvents') },
-    { icon: '✅', value: stats?.publishedEvents ?? 0,     label: t('admin.published') },
-    { icon: '👥', value: stats?.totalUsers ?? 0,          label: t('admin.users') },
+    { icon: '📅', value: stats?.totalEvents ?? 0,         label: t('admin.totalEvents'), onClick: () => navigate('/admin/events') },
+    { icon: '✅', value: stats?.publishedEvents ?? 0,     label: t('admin.published'), onClick: () => navigate('/admin/events?status=PUBLISHED') },
+    { icon: '⏳', value: stats?.pendingApprovalCount ?? 0, label: 'Chờ phê duyệt', onClick: () => navigate('/admin/events?status=PENDING_APPROVAL'), accent: stats?.pendingApprovalCount > 0 ? '#f59e0b' : undefined },
+    { icon: '👥', value: stats?.totalUsers ?? 0,          label: t('admin.users'), onClick: () => navigate('/admin/users') },
     { icon: '🎟️', value: stats?.totalRegistrations ?? 0, label: t('admin.registrations') },
   ];
 
@@ -192,9 +195,21 @@ export default function DashboardPage() {
       {/* Stat Cards */}
       <div className="admin-stats-grid">
         {statCards.map((card, i) => (
-          <div key={i} className="admin-stat-card">
+          <div
+            key={i}
+            className="admin-stat-card"
+            onClick={card.onClick}
+            style={{
+              cursor: card.onClick ? 'pointer' : 'default',
+              borderColor: card.accent ? card.accent : undefined,
+              boxShadow: card.accent ? `0 0 0 2px ${card.accent}30` : undefined,
+              transition: 'transform 0.15s, box-shadow 0.15s'
+            }}
+          >
             <div className="admin-stat-info">
-              <div className="admin-stat-value">{card.value.toLocaleString(locale)}</div>
+              <div className="admin-stat-value" style={{ color: card.accent ?? undefined }}>
+                {card.value.toLocaleString(locale)}
+              </div>
               <div className="admin-stat-label">{card.label}</div>
             </div>
             <div className="admin-stat-icon">{card.icon}</div>

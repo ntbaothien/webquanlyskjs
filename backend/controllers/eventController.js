@@ -7,6 +7,7 @@ import User from '../models/User.js';
 import Notification from '../models/Notification.js';
 import EventReport from '../models/EventReport.js';
 import Waitlist from '../models/Waitlist.js';
+import SeatHold from '../models/SeatHold.js';
 import { paginate } from '../utils/pagination.js';
 import { generateTicketCode } from '../utils/generateTicketCode.js';
 
@@ -323,7 +324,7 @@ export const registerEvent = async (req, res) => {
 
     if (!event.free) return res.status(400).json({ error: 'Sự kiện này cần mua vé' });
 
-    // Check capacity
+    // Check capacity (atomic)
     if (event.maxCapacity > 0 && event.currentAttendees >= event.maxCapacity) {
       return res.status(400).json({ error: 'Sự kiện đã đầy' });
     }
@@ -387,6 +388,73 @@ export const registerEvent = async (req, res) => {
 };
 
 /**
+ * POST /api/events/:id/hold — Giữ chỗ 5 phút (Seat Hold)
+ * Body: { zoneId, quantity }
+ */
+export const holdSeats = async (req, res) => {
+  try {
+    const eventId = req.params.id;
+    const { zoneId, quantity } = req.body;
+    const qty = parseInt(quantity) || 1;
+
+    const event = await Event.findById(eventId);
+    if (!event) return res.status(404).json({ error: 'Sự kiện không tồn tại' });
+    if (event.status !== 'PUBLISHED') return res.status(400).json({ error: 'Sự kiện chưa mở bán vé' });
+    if (event.free) return res.status(400).json({ error: 'Sự kiện miễn phí không cần giữ chỗ' });
+
+    const zone = event.seatZones.id(zoneId);
+    if (!zone) return res.status(400).json({ error: 'Khu vực không tồn tại' });
+
+    const now = new Date();
+
+    // Tính tổng số ghế đang bị giữ bởi người khác (active holds, trừ hold cũ của chính user này)
+    const activeHoldsAgg = await SeatHold.aggregate([
+      {
+        $match: {
+          eventId: event._id,
+          zoneId: zoneId.toString(),
+          expiresAt: { $gt: now },
+          userId: { $ne: req.user._id }
+        }
+      },
+      { $group: { _id: null, total: { $sum: '$quantity' } } }
+    ]);
+    const activeHeld = activeHoldsAgg[0]?.total || 0;
+
+    const available = zone.totalSeats - zone.soldSeats - activeHeld;
+    if (qty > available) {
+      return res.status(400).json({
+        error: `Khu "${zone.name}" chỉ còn ${available} ghế có thể giữ (sau khi trừ đặt chỗ đang chờ)`,
+        available
+      });
+    }
+
+    const HOLD_MINUTES = 5;
+    const expiresAt = new Date(now.getTime() + HOLD_MINUTES * 60 * 1000);
+
+    // Xoá hold cũ của user này cho zone này (nếu có) rồi tạo mới
+    await SeatHold.deleteMany({ eventId: event._id, zoneId: zoneId.toString(), userId: req.user._id });
+
+    const hold = await SeatHold.create({
+      eventId: event._id,
+      zoneId: zoneId.toString(),
+      userId: req.user._id,
+      quantity: qty,
+      expiresAt
+    });
+
+    res.json({
+      message: `Đã giữ ${qty} ghế khu ${zone.name} trong ${HOLD_MINUTES} phút`,
+      holdId: hold._id,
+      expiresAt,
+      zone: { name: zone.name, price: zone.price }
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+/**
  * POST /api/events/:id/book — paid event booking
  */
 export const bookEvent = async (req, res) => {
@@ -409,9 +477,25 @@ export const bookEvent = async (req, res) => {
     const zone = event.seatZones.id(zoneId);
     if (!zone) return res.status(400).json({ error: 'Khu vực không tồn tại' });
 
-    const available = zone.totalSeats - zone.soldSeats;
-    if (qty > available) {
-      return res.status(400).json({ error: `Khu "${zone.name}" chỉ còn ${available} ghế` });
+    // Kiểm tra Seat Hold còn hiệu lực không?
+    const now = new Date();
+    const existingHold = await SeatHold.findOne({
+      eventId: event._id,
+      zoneId: zoneId.toString(),
+      userId: req.user._id,
+      expiresAt: { $gt: now }
+    });
+    if (!existingHold) {
+      return res.status(400).json({
+        error: 'Phiên giữ chỗ đã hết hoặc chưa giữ chỗ. Vui lòng chọn khu vực ghế lại.',
+        holdExpired: true
+      });
+    }
+    if (existingHold.quantity < qty) {
+      return res.status(400).json({
+        error: `Phìiên giữ chỗ chỉ dành cho ${existingHold.quantity} ghế, bạn đang cố đặt ${qty} ghế.`,
+        holdExpired: false
+      });
     }
 
     const totalPrice = zone.price * qty;
@@ -424,7 +508,7 @@ export const bookEvent = async (req, res) => {
       });
     }
 
-    // Deduct balance atomically
+    // --- Atomic: Trừ tiền (chống race condition nếu client click 2 lần) ---
     const updatedUser = await User.findOneAndUpdate(
       { _id: user._id, balance: { $gte: totalPrice } },
       { $inc: { balance: -totalPrice } },
@@ -434,9 +518,19 @@ export const bookEvent = async (req, res) => {
       return res.status(400).json({ error: 'Số dư không đủ hoặc đã bị thay đổi' });
     }
 
-    // Update sold seats
-    await Event.updateOne(
-      { _id: eventId, 'seatZones._id': zoneId },
+    // --- Atomic: Cập nhật số ghế đã bán (chống Overselling hoàn toàn) ---
+    // Chỉ cập nhật nếu soldSeats + qty <= totalSeats
+    const updateResult = await Event.updateOne(
+      {
+        _id: eventId,
+        'seatZones._id': zoneId,
+        $expr: {
+          $lte: [
+            { $add: [{ $let: { vars: { z: { $arrayElemAt: [{ $filter: { input: '$seatZones', cond: { $eq: ['$$this._id', { $toObjectId: zoneId }] } } }, 0] } }, in: '$$z.soldSeats' } }, qty] },
+            { $let: { vars: { z: { $arrayElemAt: [{ $filter: { input: '$seatZones', cond: { $eq: ['$$this._id', { $toObjectId: zoneId }] } } }, 0] } }, in: '$$z.totalSeats' } }
+          ]
+        }
+      },
       {
         $inc: {
           'seatZones.$.soldSeats': qty,
@@ -444,6 +538,15 @@ export const bookEvent = async (req, res) => {
         }
       }
     );
+
+    if (updateResult.modifiedCount === 0) {
+      // Hoàn tiền lại cho user vì không còn ghế
+      await User.findByIdAndUpdate(user._id, { $inc: { balance: totalPrice } });
+      return res.status(400).json({
+        error: `Khu "${zone.name}" đã hết ghế. Vui lòng chọn lại khu vực.`,
+        soldOut: true
+      });
+    }
 
     // Create booking
     const booking = await Booking.create({
@@ -471,6 +574,9 @@ export const bookEvent = async (req, res) => {
         eventDate: event.startDate
       });
     }
+
+    // Xoá Seat Hold sau khi đặt vé thành công
+    await SeatHold.deleteMany({ eventId: event._id, zoneId: zoneId.toString(), userId: req.user._id });
 
     // Notification
     await Notification.create({

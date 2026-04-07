@@ -12,12 +12,13 @@ import { paginate } from '../utils/pagination.js';
  */
 export const getDashboard = async (req, res) => {
   try {
-    const [totalEvents, publishedEvents, totalUsers, totalRegistrations, totalBookings] = await Promise.all([
+    const [totalEvents, publishedEvents, totalUsers, totalRegistrations, totalBookings, pendingApprovalCount] = await Promise.all([
       Event.countDocuments(),
       Event.countDocuments({ status: 'PUBLISHED' }),
       User.countDocuments(),
       Registration.countDocuments(),
-      Booking.countDocuments()
+      Booking.countDocuments(),
+      Event.countDocuments({ status: 'PENDING_APPROVAL' })
     ]);
 
     const top5Events = await Event.find()
@@ -30,6 +31,7 @@ export const getDashboard = async (req, res) => {
       publishedEvents,
       totalUsers,
       totalRegistrations: totalRegistrations + totalBookings,
+      pendingApprovalCount,
       top5Events
     });
   } catch (error) {
@@ -288,6 +290,102 @@ export const deleteEvent = async (req, res) => {
     const event = await Event.findByIdAndDelete(req.params.id);
     if (!event) return res.status(404).json({ error: 'Không tìm thấy sự kiện' });
     res.json({ message: 'Xóa sự kiện thành công' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+/**
+ * POST /api/admin/events/:id/approve — Duyệt sự kiện: PENDING_APPROVAL → PUBLISHED
+ */
+export const approveEvent = async (req, res) => {
+  try {
+    const event = await Event.findById(req.params.id);
+    if (!event) return res.status(404).json({ error: 'Không tìm thấy sự kiện' });
+    if (event.status !== 'PENDING_APPROVAL') {
+      return res.status(400).json({ error: 'Sự kiện không ở trạng thái chờ duyệt' });
+    }
+
+    event.status = 'PUBLISHED';
+    event.rejectionReason = '';
+    await event.save();
+
+    // Thông báo cho Organizer
+    await Notification.create({
+      userId:  event.organizerId,
+      title:   'Sự kiện đã được phê duyệt ✅',
+      message: `Sự kiện "${event.title}" đã được phê duyệt và đang hiển thị công khai!`,
+      type:    'SYSTEM',
+      link:    `/events/${event._id}`
+    });
+
+    const io = req.app.get('io');
+    if (io) {
+      io.to(`user:${event.organizerId}`).emit('notification', {
+        title:   'Sự kiện đã được phê duyệt ✅',
+        message: `"${event.title}" đã được phê duyệt và hiển thị công khai!`
+      });
+    }
+
+    res.json({ message: 'Phê duyệt sự kiện thành công', event });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+/**
+ * POST /api/admin/events/:id/reject — Từ chối sự kiện: PENDING_APPROVAL → DRAFT
+ * Body: { reason: string }
+ */
+export const rejectEvent = async (req, res) => {
+  try {
+    const { reason } = req.body;
+    const event = await Event.findById(req.params.id);
+    if (!event) return res.status(404).json({ error: 'Không tìm thấy sự kiện' });
+    if (event.status !== 'PENDING_APPROVAL') {
+      return res.status(400).json({ error: 'Sự kiện không ở trạng thái chờ duyệt' });
+    }
+
+    event.status = 'DRAFT'; // Trả về DRAFT để Organizer sửa lại
+    event.rejectionReason = reason || 'Không có lý do cụ thể';
+    await event.save();
+
+    // Thông báo cho Organizer
+    await Notification.create({
+      userId:  event.organizerId,
+      title:   'Sự kiện bị từ chối ❌',
+      message: `Sự kiện "${event.title}" bị từ chối. Lý do: ${event.rejectionReason}`,
+      type:    'SYSTEM',
+      link:    `/organizer/events`
+    });
+
+    const io = req.app.get('io');
+    if (io) {
+      io.to(`user:${event.organizerId}`).emit('notification', {
+        title:   'Sự kiện bị từ chối ❌',
+        message: `"${event.title}" bị từ chối. Lý do: ${event.rejectionReason}`
+      });
+    }
+
+    res.json({ message: 'Từ chối sự kiện thành công', event });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+/**
+ * GET /api/admin/events/pending — Sự kiện chờ duyệt
+ */
+export const getPendingEvents = async (req, res) => {
+  try {
+    const { keyword, page, size } = req.query;
+    const filter = { status: 'PENDING_APPROVAL' };
+    if (keyword) {
+      filter.title = { $regex: keyword, $options: 'i' };
+    }
+    const result = await paginate(Event, filter, { page, size: size || 20, sort: { createdAt: -1 } });
+    result.content = result.content.map(e => ({ ...e, id: e._id }));
+    res.json(result);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

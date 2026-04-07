@@ -14,6 +14,8 @@ export default function AdminEventManagePage() {
   const [regModal, setRegModal] = useState(null); // { eventId, eventTitle }
   const [regData, setRegData] = useState({ registrations: [], bookings: [] });
   const [regLoading, setRegLoading] = useState(false);
+  const [rejectModal, setRejectModal] = useState(null); // { eventId, title }
+  const [rejectReason, setRejectReason] = useState('');
 
   const fetchEvents = async (f = filters) => {
     setLoading(true);
@@ -41,6 +43,31 @@ export default function AdminEventManagePage() {
       fetchEvents();
     } catch (err) {
       showMsg(err.response?.data?.error || t('admin.actionFailed'), 'error');
+    }
+  };
+
+  const handleApprove = async (id, title) => {
+    if (!window.confirm(`Duyệt sự kiện "${title}" và đăng lên công khai?`)) return;
+    try {
+      await axiosInstance.post(`/admin/events/${id}/approve`);
+      showMsg(`✅ Đã duyệt sự kiện "${title}"`);
+      fetchEvents();
+    } catch (err) {
+      showMsg(err.response?.data?.error || 'Lỗi duyệt sự kiện', 'error');
+    }
+  };
+
+  const handleRejectSubmit = async () => {
+    if (!rejectModal) return;
+    if (!rejectReason.trim()) { showMsg('Vui lòng nhập lý do từ chối', 'error'); return; }
+    try {
+      await axiosInstance.post(`/admin/events/${rejectModal.eventId}/reject`, { reason: rejectReason });
+      showMsg(`❌ Đã từ chối sự kiện "${rejectModal.title}"`);
+      setRejectModal(null);
+      setRejectReason('');
+      fetchEvents();
+    } catch (err) {
+      showMsg(err.response?.data?.error || 'Lỗi từ chối sự kiện', 'error');
     }
   };
 
@@ -84,6 +111,7 @@ export default function AdminEventManagePage() {
           onChange={e => { const nf = { ...filters, status: e.target.value, page: 0 }; setFilters(nf); fetchEvents(nf); }}
         >
           <option value="">{t('admin.allStatus')}</option>
+          <option value="PENDING_APPROVAL">⏳ Chờ duyệt</option>
           <option value="PUBLISHED">PUBLISHED</option>
           <option value="DRAFT">DRAFT</option>
           <option value="CANCELLED">CANCELLED</option>
@@ -132,12 +160,30 @@ export default function AdminEventManagePage() {
                     <span className={`admin-status-badge ${e.status?.toLowerCase()}`}>{e.status}</span>
                   </td>
                   <td>
-                    <div style={{ display: 'flex', gap: '0.4rem' }}>
+                    <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap' }}>
+                      {/* Duyệt / Từ chối cho sự kiện đang chờ */}
+                      {e.status === 'PENDING_APPROVAL' && (
+                        <>
+                          <button
+                            className="admin-btn"
+                            style={{ background: 'linear-gradient(135deg, #10b981, #059669)', color: '#fff', fontSize: '0.75rem', padding: '0.3rem 0.6rem' }}
+                            onClick={() => handleApprove(e.id, e.title)}
+                            title="Duyệt xuất bản"
+                          >
+                            ✅ Duyệt
+                          </button>
+                          <button
+                            className="admin-btn"
+                            style={{ background: 'linear-gradient(135deg, #ef4444, #dc2626)', color: '#fff', fontSize: '0.75rem', padding: '0.3rem 0.6rem' }}
+                            onClick={() => { setRejectModal({ eventId: e.id, title: e.title }); setRejectReason(''); }}
+                            title="Từ chối"
+                          >
+                            ❌ Từ chối
+                          </button>
+                        </>
+                      )}
                       <button className="admin-btn admin-btn-info" onClick={() => handleViewRegistrations(e.id, e.title)}>
                         👥
-                      </button>
-                      <button className="admin-btn admin-btn-secondary" onClick={() => navigate(`/admin/events/${e.id}/resources`)}>
-                        🛠
                       </button>
                       {e.status !== 'CANCELLED' && (
                         <button className="admin-btn admin-btn-danger" onClick={() => handleDelete(e.id, e.title)}>
@@ -269,6 +315,50 @@ export default function AdminEventManagePage() {
                 )}
               </>
             )}
+          </div>
+        </div>
+      )}
+      {/* Reject Modal */}
+      {rejectModal && (
+        <div className="admin-modal-overlay" onClick={() => setRejectModal(null)}>
+          <div className="admin-modal" onClick={e => e.stopPropagation()} style={{ maxWidth: 480 }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
+              <h2 style={{ margin: 0, color: '#ef4444' }}>❌ Từ chối sự kiện</h2>
+              <button className="admin-modal-close" onClick={() => setRejectModal(null)}>✕</button>
+            </div>
+            <p style={{ color: 'var(--admin-text-muted)', marginBottom: '1rem', fontSize: '0.9rem' }}>
+              Sự kiện: <strong style={{ color: 'var(--admin-text)' }}>{rejectModal.title}</strong>
+            </p>
+            <label style={{ display: 'block', fontWeight: 600, marginBottom: '0.5rem', fontSize: '0.85rem', color: 'var(--admin-text)' }}>
+              Lý do từ chối <span style={{ color: '#ef4444' }}>*</span>
+            </label>
+            <textarea
+              value={rejectReason}
+              onChange={e => setRejectReason(e.target.value)}
+              placeholder="Nhập lý do cụ thể để Organizer biết điều chỉnh..."
+              rows={4}
+              style={{
+                width: '100%', padding: '0.75rem', borderRadius: 10, border: '1px solid var(--admin-border)',
+                background: 'var(--admin-card-bg)', color: 'var(--admin-text)', resize: 'vertical',
+                fontSize: '0.88rem', boxSizing: 'border-box'
+              }}
+            />
+            <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1.25rem', justifyContent: 'flex-end' }}>
+              <button
+                className="admin-btn"
+                style={{ background: 'var(--admin-border)', color: 'var(--admin-text)' }}
+                onClick={() => setRejectModal(null)}
+              >
+                Hủy
+              </button>
+              <button
+                className="admin-btn"
+                style={{ background: 'linear-gradient(135deg, #ef4444, #dc2626)', color: '#fff' }}
+                onClick={handleRejectSubmit}
+              >
+                ❌ Xác nhận từ chối
+              </button>
+            </div>
           </div>
         </div>
       )}
