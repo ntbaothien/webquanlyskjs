@@ -3,6 +3,7 @@
     "events": "Sự kiện",
     "myRegistrations": "Đăng ký của tôi",
     "myTickets": "Vé của tôi",
+    "myWaitlist": "Danh sách chờ",
     "myEvents": "Sự kiện của tôi",
     "checkIn": "Check-in",
     "admin": "Quản trị",
@@ -650,5 +651,20 @@
     "totalAmount": "Tổng tiền",
     "deleteConfirm": "Bạn có chắc muốn hủy/xóa sự kiện \"{{title}}\"?",
     "deleteSuccess": "Đã hủy/xóa sự kiện thành công"
+  },
+  "waitlist": {
+    "join": "Thông báo khi có chỗ",
+    "leave": "Rời danh sách chờ",
+    "joinedMessage": "Đã thêm vào danh sách chờ! Chúng tôi sẽ thông báo khi có chỗ trống.",
+    "leftMessage": "Đã rời danh sách chờ.",
+    "peopleWaiting": "{{count}} người đang chờ",
+    "notified": "Đã thông báo",
+    "myWaitlistTitle": "Danh sách chờ của tôi",
+    "myWaitlistDesc": "Các sự kiện bạn đang chờ có chỗ trống",
+    "emptyTitle": "Danh sách chờ trống",
+    "emptyDesc": "Bạn chưa đăng ký chờ sự kiện nào. Khám phá sự kiện và đăng ký khi có chỗ!",
+    "browseEvents": "Khám phá sự kiện",
+    "joinedAt": "Đăng ký chờ lúc",
+    "spotsAvailableNow": "✅ Hiện còn {{count}} chỗ — Đăng ký ngay!"
   }
 }

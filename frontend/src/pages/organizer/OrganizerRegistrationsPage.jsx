@@ -78,13 +78,20 @@ function Pagination({ page, totalPages, onChange }) {
 // ── Main page ─────────────────────────────────────────────────────────────────
 export default function OrganizerRegistrationsPage() {
   const { id } = useParams();
-  const [data, setData]         = useState(null);
-  const [loading, setLoading]   = useState(true);
-  const [tab, setTab]           = useState('registrations'); // registrations | bookings
-  const [keyword, setKeyword]   = useState('');
-  const [status, setStatus]     = useState('');
-  const [page, setPage]         = useState(0);
-  const debounceRef             = useRef(null);
+  const [data, setData]               = useState(null);
+  const [loading, setLoading]         = useState(true);
+  const [tab, setTab]                 = useState('registrations'); // registrations | bookings | waitlist
+  const [keyword, setKeyword]         = useState('');
+  const [status, setStatus]           = useState('');
+  const [page, setPage]               = useState(0);
+  const debounceRef                   = useRef(null);
+
+  // Waitlist state
+  const [waitlistData, setWaitlistData] = useState(null);
+  const [waitlistLoading, setWaitlistLoading] = useState(false);
+  const [waitlistKeyword, setWaitlistKeyword] = useState('');
+  const [waitlistPage, setWaitlistPage]       = useState(0);
+  const waitlistDebounceRef                   = useRef(null);
 
   const load = useCallback(async (opts = {}) => {
     setLoading(true);
@@ -101,7 +108,25 @@ export default function OrganizerRegistrationsPage() {
     }
   }, [id, keyword, status, page]);
 
+  const loadWaitlist = useCallback(async (opts = {}) => {
+    setWaitlistLoading(true);
+    try {
+      const params = { page: opts.page ?? waitlistPage, size: 20 };
+      if (opts.keyword ?? waitlistKeyword) params.keyword = opts.keyword ?? waitlistKeyword;
+      const { data: res } = await axiosInstance.get(`/organizer/events/${id}/waitlist`, { params });
+      setWaitlistData(res);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setWaitlistLoading(false);
+    }
+  }, [id, waitlistKeyword, waitlistPage]);
+
   useEffect(() => { load(); }, []);
+
+  useEffect(() => {
+    if (tab === 'waitlist' && !waitlistData) loadWaitlist();
+  }, [tab]);
 
   const handleKeywordChange = (val) => {
     setKeyword(val);
@@ -123,7 +148,33 @@ export default function OrganizerRegistrationsPage() {
     load({ page: p });
   };
 
+  const handleWaitlistKeywordChange = (val) => {
+    setWaitlistKeyword(val);
+    clearTimeout(waitlistDebounceRef.current);
+    waitlistDebounceRef.current = setTimeout(() => {
+      setWaitlistPage(0);
+      loadWaitlist({ keyword: val, page: 0 });
+    }, 400);
+  };
+
+  const handleWaitlistPageChange = (p) => {
+    setWaitlistPage(p);
+    loadWaitlist({ page: p });
+  };
+
   const handleExport = () => {
+    if (tab === 'waitlist') {
+      if (!waitlistData) return;
+      const rows = waitlistData.waitlist.map(w => ({
+        'STT': w.position,
+        'Họ tên': w.userFullName,
+        'Email': w.userEmail,
+        'Đã thông báo': w.notified ? 'Có' : 'Chưa',
+        'Thời gian đăng ký chờ': new Date(w.createdAt).toLocaleString('vi-VN'),
+      }));
+      exportCSV(rows, `danh-sach-cho-${id}.csv`);
+      return;
+    }
     if (!data) return;
     if (tab === 'registrations') {
       const rows = data.registrations.map(r => ({
@@ -165,6 +216,7 @@ export default function OrganizerRegistrationsPage() {
   const isFreePrimary = event.free;
   const currentList = tab === 'registrations' ? registrations : bookings;
   const currentPagination = tab === 'registrations' ? regPagination : bookPagination;
+  const waitlistTotal = waitlistData?.pagination?.total ?? 0;
 
   return (
     <>
@@ -218,20 +270,34 @@ export default function OrganizerRegistrationsPage() {
         </div>
 
         {/* ── Tabs ── */}
-        {!event.free && (
-          <div className="reg-tabs">
+        <div className="reg-tabs">
+          {isFreePrimary ? (
             <button className={`reg-tab ${tab === 'registrations' ? 'active' : ''}`}
               onClick={() => { setTab('registrations'); setPage(0); }}>
-              📋 Đăng ký miễn phí
+              📋 Đăng ký
               <span className="reg-tab-count">{regStats.total}</span>
             </button>
-            <button className={`reg-tab ${tab === 'bookings' ? 'active' : ''}`}
-              onClick={() => { setTab('bookings'); setPage(0); }}>
-              🪑 Đặt vé có phí
-              <span className="reg-tab-count">{bookStats.total}</span>
-            </button>
-          </div>
-        )}
+          ) : (
+            <>
+              <button className={`reg-tab ${tab === 'registrations' ? 'active' : ''}`}
+                onClick={() => { setTab('registrations'); setPage(0); }}>
+                📋 Đăng ký miễn phí
+                <span className="reg-tab-count">{regStats.total}</span>
+              </button>
+              <button className={`reg-tab ${tab === 'bookings' ? 'active' : ''}`}
+                onClick={() => { setTab('bookings'); setPage(0); }}>
+                🪑 Đặt vé có phí
+                <span className="reg-tab-count">{bookStats.total}</span>
+              </button>
+            </>
+          )}
+          <button className={`reg-tab ${tab === 'waitlist' ? 'active' : ''}`}
+            onClick={() => setTab('waitlist')}
+            style={{ '--tab-accent': '#fbbf24' }}>
+            🔔 Danh sách chờ
+            {waitlistTotal > 0 && <span className="reg-tab-count" style={{ background: 'rgba(251,191,36,0.15)', color: '#fbbf24' }}>{waitlistTotal}</span>}
+          </button>
+        </div>
 
         {/* ── Toolbar ── */}
         <div className="reg-toolbar">
@@ -243,26 +309,28 @@ export default function OrganizerRegistrationsPage() {
             <input
               type="text"
               placeholder="Tìm theo tên, email..."
-              value={keyword}
-              onChange={e => handleKeywordChange(e.target.value)}
+              value={tab === 'waitlist' ? waitlistKeyword : keyword}
+              onChange={e => tab === 'waitlist' ? handleWaitlistKeywordChange(e.target.value) : handleKeywordChange(e.target.value)}
               className="reg-search-input"
             />
-            {keyword && (
-              <button className="reg-search-clear" onClick={() => handleKeywordChange('')}>×</button>
+            {(tab === 'waitlist' ? waitlistKeyword : keyword) && (
+              <button className="reg-search-clear" onClick={() => tab === 'waitlist' ? handleWaitlistKeywordChange('') : handleKeywordChange('')}>×</button>
             )}
           </div>
 
-          <div className="reg-status-filter">
-            {['', 'CONFIRMED', 'CANCELLED', ...(tab === 'bookings' ? ['PENDING', 'REFUNDED'] : [])].map(s => (
-              <button key={s} className={`reg-filter-chip ${status === s ? 'active' : ''}`}
-                onClick={() => handleStatusChange(s)}>
-                {s || 'Tất cả'}
-              </button>
-            ))}
-          </div>
+          {tab !== 'waitlist' && (
+            <div className="reg-status-filter">
+              {['', 'CONFIRMED', 'CANCELLED', ...(tab === 'bookings' ? ['PENDING', 'REFUNDED'] : [])].map(s => (
+                <button key={s} className={`reg-filter-chip ${status === s ? 'active' : ''}`}
+                  onClick={() => handleStatusChange(s)}>
+                  {s || 'Tất cả'}
+                </button>
+              ))}
+            </div>
+          )}
 
           <button className="reg-export-btn" onClick={handleExport}
-            disabled={currentList.length === 0}>
+            disabled={tab === 'waitlist' ? (!waitlistData || waitlistData.waitlist.length === 0) : currentList.length === 0}>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="14" height="14">
               <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
               <polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
@@ -272,7 +340,61 @@ export default function OrganizerRegistrationsPage() {
         </div>
 
         {/* ── Table ── */}
-        {loading ? (
+        {tab === 'waitlist' ? (
+          waitlistLoading ? (
+            <div style={{ textAlign: 'center', padding: '3rem 0' }}>
+              <div className="reg-loading-spinner" />
+            </div>
+          ) : !waitlistData || waitlistData.waitlist.length === 0 ? (
+            <div className="reg-empty">
+              <span>🔔</span>
+              <p>{waitlistKeyword ? 'Không tìm thấy kết quả phù hợp' : 'Danh sách chờ trống'}</p>
+              {waitlistKeyword && (
+                <button onClick={() => handleWaitlistKeywordChange('')}>Xóa bộ lọc</button>
+              )}
+            </div>
+          ) : (
+            <div className="reg-table-wrap">
+              <table className="reg-table">
+                <thead>
+                  <tr>
+                    <th>STT</th>
+                    <th>Họ tên</th>
+                    <th>Email</th>
+                    <th>Đã thông báo</th>
+                    <th>Thời gian đăng ký chờ</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {waitlistData.waitlist.map(w => (
+                    <tr key={w._id}>
+                      <td className="reg-num" style={{ color: '#fbbf24', fontWeight: 700 }}>#{w.position}</td>
+                      <td>
+                        <div className="reg-user-cell">
+                          <div className="reg-avatar">{w.userFullName?.[0]?.toUpperCase() || '?'}</div>
+                          <strong>{w.userFullName}</strong>
+                        </div>
+                      </td>
+                      <td className="reg-email">{w.userEmail}</td>
+                      <td>
+                        <span style={{
+                          fontSize: '0.75rem', fontWeight: 600,
+                          padding: '0.2rem 0.55rem', borderRadius: '6px',
+                          color: w.notified ? '#4ade80' : '#94a3b8',
+                          background: w.notified ? 'rgba(74,222,128,0.12)' : 'rgba(148,163,184,0.12)'
+                        }}>
+                          {w.notified ? '✉️ Đã gửi' : '⏳ Chưa gửi'}
+                        </span>
+                      </td>
+                      <td className="reg-date">{new Date(w.createdAt).toLocaleString('vi-VN')}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              <Pagination page={waitlistPage} totalPages={waitlistData.pagination.totalPages} onChange={handleWaitlistPageChange} />
+            </div>
+          )
+        ) : loading ? (
           <div style={{ textAlign: 'center', padding: '3rem 0' }}>
             <div className="reg-loading-spinner" />
           </div>

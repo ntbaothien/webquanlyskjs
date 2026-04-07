@@ -31,6 +31,7 @@ import CouponManagePage from './pages/admin/CouponManagePage';
 // Profile pages
 import ProfilePage from './pages/profile/ProfilePage';
 import SavedEventsPage from './pages/profile/SavedEventsPage';
+import MyWaitlistPage from './pages/profile/MyWaitlistPage';
 
 // Error pages
 import NotFoundPage from './pages/errors/NotFoundPage';
@@ -106,6 +107,7 @@ export default function App() {
         {/* Profile */}
         <Route path="/profile" element={<PrivateRoute><ProfilePage /></PrivateRoute>} />
         <Route path="/profile/saved" element={<PrivateRoute><SavedEventsPage /></PrivateRoute>} />
+        <Route path="/my-waitlist" element={<PrivateRoute><MyWaitlistPage /></PrivateRoute>} />
 
         {/* 404 — catch all */}
         <Route path="*" element={<NotFoundPage />} />

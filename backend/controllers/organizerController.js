@@ -1,6 +1,8 @@
 import Event from '../models/Event.js';
 import Registration from '../models/Registration.js';
 import Booking from '../models/Booking.js';
+import Waitlist from '../models/Waitlist.js';
+import User from '../models/User.js';
 import { paginate } from '../utils/pagination.js';
 
 /**
@@ -228,6 +230,63 @@ export const getEventRegistrations = async (req, res) => {
         cancelled: bookStatsMap['CANCELLED'] || 0,
         totalRevenue,
         totalSeats,
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+/**
+ * GET /api/organizer/events/:id/waitlist
+ * Trả về danh sách chờ của sự kiện (chỉ organizer/admin)
+ */
+export const getEventWaitlist = async (req, res) => {
+  try {
+    const event = await Event.findById(req.params.id).lean();
+    if (!event) return res.status(404).json({ error: 'Không tìm thấy sự kiện' });
+
+    if (event.organizerId.toString() !== req.user._id.toString() && req.user.role !== 'ADMIN') {
+      return res.status(403).json({ error: 'Không có quyền xem' });
+    }
+
+    const { keyword, page = 0, size = 20 } = req.query;
+    const pageNum = Math.max(0, parseInt(page));
+    const pageSize = Math.min(100, Math.max(1, parseInt(size)));
+
+    const entries = await Waitlist.find({ eventId: req.params.id })
+      .populate('userId', 'fullName email')
+      .sort({ createdAt: 1 })
+      .lean();
+
+    let filtered = entries;
+    if (keyword) {
+      const lk = keyword.toLowerCase();
+      filtered = entries.filter(e =>
+        e.userId?.fullName?.toLowerCase().includes(lk) ||
+        e.userId?.email?.toLowerCase().includes(lk)
+      );
+    }
+
+    const total = filtered.length;
+    const paged = filtered.slice(pageNum * pageSize, (pageNum + 1) * pageSize);
+
+    res.json({
+      event,
+      waitlist: paged.map((e, idx) => ({
+        _id: e._id,
+        position: pageNum * pageSize + idx + 1,
+        userId: e.userId?._id,
+        userFullName: e.userId?.fullName || 'N/A',
+        userEmail: e.userId?.email || 'N/A',
+        notified: e.notified,
+        createdAt: e.createdAt
+      })),
+      pagination: {
+        total,
+        totalPages: Math.ceil(total / pageSize),
+        page: pageNum,
+        size: pageSize
       }
     });
   } catch (error) {

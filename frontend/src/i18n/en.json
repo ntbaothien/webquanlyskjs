@@ -3,6 +3,7 @@
     "events": "Events",
     "myRegistrations": "My Registrations",
     "myTickets": "My Tickets",
+    "myWaitlist": "My Waitlist",
     "myEvents": "My Events",
     "checkIn": "Check-in",
     "admin": "Admin",
@@ -650,5 +651,20 @@
     "totalAmount": "Total",
     "deleteConfirm": "Are you sure you want to cancel/delete event \"{{title}}\"?",
     "deleteSuccess": "Event cancelled/deleted successfully"
+  },
+  "waitlist": {
+    "join": "Notify when available",
+    "leave": "Leave waitlist",
+    "joinedMessage": "Added to waitlist! We'll notify you when a spot opens up.",
+    "leftMessage": "You've left the waitlist.",
+    "peopleWaiting": "{{count}} people waiting",
+    "notified": "Notified",
+    "myWaitlistTitle": "My Waitlist",
+    "myWaitlistDesc": "Events you're waiting for a spot",
+    "emptyTitle": "Waitlist is empty",
+    "emptyDesc": "You haven't joined any waitlists. Browse events and sign up when full!",
+    "browseEvents": "Browse Events",
+    "joinedAt": "Joined waitlist at",
+    "spotsAvailableNow": "✅ {{count}} spot(s) available — Register now!"
   }
 }

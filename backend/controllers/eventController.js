@@ -555,13 +555,33 @@ export const addToWaitlist = async (req, res) => {
     const eventId = req.params.id;
     const userId = req.user._id;
 
+    const event = await Event.findById(eventId).lean();
+    if (!event) return res.status(404).json({ error: 'Sự kiện không tồn tại' });
+
     const existing = await Waitlist.findOne({ eventId, userId });
     if (existing) {
       return res.status(400).json({ error: 'Bạn đã đăng ký nhận thông báo' });
     }
 
     await Waitlist.create({ eventId, userId });
-    res.json({ message: 'Chúng tôi sẽ thông báo cho bạn khi có ghế trống! 🔔' });
+    res.json({ message: 'Chúng tôi sẽ thông báo cho bạn khi có chỗ trống! 🔔' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+/**
+ * DELETE /api/events/:id/waitlist — rời danh sách chờ
+ */
+export const removeFromWaitlist = async (req, res) => {
+  try {
+    const eventId = req.params.id;
+    const userId = req.user._id;
+
+    const deleted = await Waitlist.findOneAndDelete({ eventId, userId });
+    if (!deleted) return res.status(404).json({ error: 'Bạn chưa ở trong danh sách chờ' });
+
+    res.json({ message: 'Đã rời danh sách chờ' });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -575,7 +595,54 @@ export const getWaitlistStatus = async (req, res) => {
     const eventId = req.params.id;
     const userId = req.user._id;
     const existing = await Waitlist.findOne({ eventId, userId });
-    res.json({ onWaitlist: !!existing });
+    const count = await Waitlist.countDocuments({ eventId });
+    res.json({ onWaitlist: !!existing, count });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+/**
+ * GET /api/waitlist/my — danh sách chờ của người dùng hiện tại
+ */
+export const getMyWaitlist = async (req, res) => {
+  try {
+    const userId = req.user._id;
+    const entries = await Waitlist.find({ userId })
+      .populate('eventId', 'title location startDate endDate bannerImagePath free status seatZones maxCapacity currentAttendees')
+      .sort({ createdAt: -1 })
+      .lean();
+
+    const result = entries.map(e => {
+      const ev = e.eventId;
+      if (!ev) return null;
+      const now = new Date();
+      const eventEnd = ev.endDate || ev.startDate;
+      const isPast = eventEnd && new Date(eventEnd) < now;
+      let spotsLeft = 0;
+      if (ev.free) {
+        spotsLeft = ev.maxCapacity > 0 ? Math.max(0, ev.maxCapacity - ev.currentAttendees) : 2147483647;
+      } else {
+        spotsLeft = (ev.seatZones || []).reduce((s, z) => s + Math.max(0, z.totalSeats - z.soldSeats), 0);
+      }
+      return {
+        _id: e._id,
+        eventId: ev._id,
+        eventTitle: ev.title,
+        eventLocation: ev.location,
+        eventStartDate: ev.startDate,
+        eventEndDate: ev.endDate,
+        eventBanner: ev.bannerImagePath,
+        eventFree: ev.free,
+        eventStatus: ev.status,
+        spotsLeft,
+        isPast,
+        notified: e.notified,
+        createdAt: e.createdAt
+      };
+    }).filter(Boolean);
+
+    res.json({ data: result });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
