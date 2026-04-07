@@ -113,17 +113,20 @@ export default function EventListPage() {
     const next = new URLSearchParams(searchParams);
     if (val !== '' && val !== null && val !== undefined) next.set(key, val);
     else next.delete(key);
-    next.delete('page');
+    // Only reset to page 0 when changing filters, not when changing the page itself
+    if (key !== 'page') next.delete('page');
     setSearchParams(next);
   }, [searchParams, setSearchParams]);
 
   const updateMultiple = useCallback((updates) => {
     const next = new URLSearchParams(searchParams);
+    const keys = Object.keys(updates);
     Object.entries(updates).forEach(([k, v]) => {
       if (v !== '' && v !== null && v !== undefined) next.set(k, v);
       else next.delete(k);
     });
-    next.delete('page');
+    // Reset to page 0 only when changing filters, not when page is in the updates
+    if (!keys.includes('page')) next.delete('page');
     setSearchParams(next);
   }, [searchParams, setSearchParams]);
 
