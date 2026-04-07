@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import axiosInstance from '../../utils/axiosInstance';
 import useAuthStore from '../../store/authStore';
 import Navbar from '../../components/common/Navbar';
@@ -9,6 +10,8 @@ export default function BookingPage() {
   const { id: eventId } = useParams();
   const navigate = useNavigate();
   const { user } = useAuthStore();
+  const { t, i18n } = useTranslation();
+  const locale = i18n.language === 'vi' ? 'vi-VN' : 'en-US';
 
   const [event, setEvent] = useState(null);
   const [zones, setZones] = useState([]);
@@ -73,7 +76,7 @@ export default function BookingPage() {
   };
 
   const handleBook = async () => {
-    if (!selectedZone) { setError('Vui lòng chọn khu vực'); return; }
+    if (!selectedZone) { setError(t('booking.selectZoneError')); return; }
     setError('');
     setSubmitting(true);
     try {
@@ -89,13 +92,13 @@ export default function BookingPage() {
 
       navigate('/my-tickets', { state: { success: true, message: `Đặt ${quantity} vé khu ${selectedZone.name} thành công! 🎉` } });
     } catch (err) {
-      setError(err.response?.data?.error || 'Đặt vé thất bại');
+      setError(err.response?.data?.error || t('common.error'));
     } finally {
       setSubmitting(false);
     }
   };
 
-  if (loading) return <><Navbar /><div className="loading-state">⏳ Đang tải...</div></>;
+  if (loading) return <><Navbar /><div className="loading-state">{t('booking.loading')}</div></>;
   if (!event) return null;
 
   const totalPriceBeforeDiscount = selectedZone ? selectedZone.price * quantity : 0;
@@ -105,14 +108,14 @@ export default function BookingPage() {
     <>
       <Navbar />
       <div className="page-container">
-        <button className="btn-back" onClick={() => navigate(`/events/${eventId}`)}>← Quay lại</button>
-        <h1 className="page-title" style={{ marginBottom: '0.25rem' }}>🪑 Chọn chỗ ngồi</h1>
-        <p style={{ color: 'rgba(255,255,255,0.6)', marginBottom: '2rem' }}>{event.title}</p>
+        <button className="btn-back" onClick={() => navigate(`/events/${eventId}`)}>{t('booking.back')}</button>
+        <h1 className="page-title" style={{ marginBottom: '0.25rem' }}>🪑 {t('booking.title')}</h1>
+        <p style={{ color: 'var(--text-secondary)', marginBottom: '2rem' }}>{event.title}</p>
 
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 340px', gap: '2rem' }}>
           {/* Left - Zone selection */}
           <div>
-            <h3 style={{ marginBottom: '1rem' }}>1. Chọn khu vực</h3>
+            <h3 style={{ marginBottom: '1rem' }}>{t('booking.selectZone')}</h3>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
               {zones.map(zone => {
                 const available = Math.max(0, zone.totalSeats - zone.soldSeats);
@@ -124,8 +127,9 @@ export default function BookingPage() {
                     key={zoneId}
                     onClick={() => { if (!isSoldOut) { setSelectedZone(zone); setError(''); removeCoupon(); } }}
                     style={{
-                      background: isSelected ? 'rgba(108,99,255,0.15)' : 'rgba(255,255,255,0.04)',
-                      border: `2px solid ${isSelected ? zone.color || '#6c63ff' : 'rgba(255,255,255,0.1)'}`,
+                      background: isSelected ? 'rgba(108,99,255,0.15)' : 'var(--bg-input)',
+                      border: `2px solid ${isSelected ? zone.color || '#6c63ff' : 'var(--border)'}`,
+                      boxShadow: isSelected ? `0 2px 12px rgba(108,99,255,0.15)` : '0 1px 4px rgba(0,0,0,0.06)',
                       borderRadius: '14px',
                       padding: '1.25rem 1.5rem',
                       cursor: isSoldOut ? 'not-allowed' : 'pointer',
@@ -140,14 +144,14 @@ export default function BookingPage() {
                             display: 'inline-block', width: 14, height: 14, borderRadius: '50%',
                             background: zone.color || '#6c63ff', flexShrink: 0
                           }} />
-                          <span style={{ fontWeight: 700, fontSize: '1.05rem', color: '#fff' }}>{zone.name}</span>
-                          {isSoldOut && <span style={{ fontSize: '0.75rem', background: 'rgba(239,68,68,0.2)', color: '#ef4444', padding: '2px 8px', borderRadius: '20px' }}>Hết chỗ</span>}
+                          <span style={{ fontWeight: 700, fontSize: '1.05rem', color: 'var(--text-primary)' }}>{zone.name}</span>
+                          {isSoldOut && <span style={{ fontSize: '0.75rem', background: 'rgba(239,68,68,0.2)', color: '#ef4444', padding: '2px 8px', borderRadius: '20px' }}>{t('booking.soldOut')}</span>}
                         </div>
                         {zone.description && (
-                          <p style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.55)', marginBottom: '0.5rem' }}>{zone.description}</p>
+                          <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>{zone.description}</p>
                         )}
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                          <div style={{ flex: 1, height: 6, background: 'rgba(255,255,255,0.08)', borderRadius: 3, overflow: 'hidden' }}>
+                          <div style={{ flex: 1, height: 6, background: 'var(--border)', borderRadius: 3, overflow: 'hidden' }}>
                             <div style={{
                               height: '100%',
                               width: `${zone.totalSeats > 0 ? (zone.soldSeats / zone.totalSeats) * 100 : 0}%`,
@@ -156,16 +160,16 @@ export default function BookingPage() {
                               transition: 'width 0.4s'
                             }} />
                           </div>
-                          <span style={{ fontSize: '0.8rem', color: available <= 5 ? '#fca5a5' : 'rgba(255,255,255,0.5)', whiteSpace: 'nowrap' }}>
-                            {available <= 5 && available > 0 ? `⚡ Còn ${available}!` : `${available} / ${zone.totalSeats}`}
+                          <span style={{ fontSize: '0.8rem', color: available <= 5 ? 'var(--danger)' : 'var(--text-muted)', whiteSpace: 'nowrap' }}>
+                            {available <= 5 && available > 0 ? `⚡ ${available}!` : `${available} / ${zone.totalSeats}`}
                           </span>
                         </div>
                       </div>
                       <div style={{ textAlign: 'right', marginLeft: '1.5rem' }}>
                         <div style={{ fontSize: '1.3rem', fontWeight: 800, color: zone.color || '#a78bfa' }}>
-                          {zone.price === 0 ? 'Miễn phí' : `${zone.price.toLocaleString('vi-VN')}đ`}
+                          {zone.price === 0 ? t('eventDetail.free') : `${zone.price.toLocaleString(locale)}đ`}
                         </div>
-                        <div style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.4)', marginTop: '0.2rem' }}>/ ghế</div>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '0.2rem' }}>{t('booking.perSeat')}</div>
                         {isSelected && <div style={{ fontSize: '1.5rem', marginTop: '0.5rem' }}>✅</div>}
                       </div>
                     </div>
@@ -178,28 +182,29 @@ export default function BookingPage() {
             {selectedZone && (
               <div style={{
                 marginTop: '1.5rem',
-                background: 'rgba(255,255,255,0.04)',
+                background: 'var(--bg-input)',
                 borderRadius: '14px',
                 padding: '1.25rem 1.5rem',
-                border: '1px solid rgba(255,255,255,0.08)'
+                border: '1px solid var(--border)',
+                boxShadow: '0 1px 4px rgba(0,0,0,0.06)'
               }}>
-                <h3 style={{ marginBottom: '1rem' }}>2. Số lượng vé</h3>
+                <h3 style={{ marginBottom: '1rem' }}>{t('booking.selectQuantity')}</h3>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
                   <button
                     onClick={() => { setQuantity(q => Math.max(1, q - 1)); removeCoupon(); }}
-                    style={{ width: 44, height: 44, borderRadius: '50%', border: '1px solid rgba(255,255,255,0.2)', background: 'transparent', color: '#fff', fontSize: '1.5rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                    style={{ width: 44, height: 44, borderRadius: '50%', border: '1px solid var(--border-strong)', background: 'var(--bg-input)', color: 'var(--text-primary)', fontSize: '1.5rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                   >−</button>
-                  <span style={{ fontSize: '2rem', fontWeight: 800, minWidth: 48, textAlign: 'center', color: '#fff' }}>{quantity}</span>
+                  <span style={{ fontSize: '2rem', fontWeight: 800, minWidth: 48, textAlign: 'center', color: 'var(--text-primary)' }}>{quantity}</span>
                   <button
                     onClick={() => {
                       const max = Math.max(0, selectedZone.totalSeats - selectedZone.soldSeats);
                       setQuantity(q => Math.min(max, q + 1));
                       removeCoupon();
                     }}
-                    style={{ width: 44, height: 44, borderRadius: '50%', border: '1px solid rgba(255,255,255,0.2)', background: 'transparent', color: '#fff', fontSize: '1.5rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                    style={{ width: 44, height: 44, borderRadius: '50%', border: '1px solid var(--border-strong)', background: 'var(--bg-input)', color: 'var(--text-primary)', fontSize: '1.5rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                   >+</button>
-                  <span style={{ fontSize: '0.9rem', color: 'rgba(255,255,255,0.4)' }}>
-                    (Còn {Math.max(0, selectedZone.totalSeats - selectedZone.soldSeats)} ghế)
+                  <span style={{ fontSize: '0.9rem', color: 'var(--text-muted)' }}>
+                    {t('booking.seatsLeft', { count: Math.max(0, selectedZone.totalSeats - selectedZone.soldSeats) })}
                   </span>
                 </div>
               </div>
@@ -208,22 +213,23 @@ export default function BookingPage() {
 
           {/* Right - Summary */}
           <div>
-            <div style={{
+            <div className="booking-summary-card" style={{
               position: 'sticky',
               top: 'calc(var(--header-h, 70px) + 20px)',
-              background: 'rgba(255,255,255,0.05)',
+              background: 'var(--bg-card)',
               backdropFilter: 'blur(10px)',
               borderRadius: '16px',
               padding: '1.5rem',
-              border: '1px solid rgba(255,255,255,0.1)'
+              border: '1px solid var(--border)',
+              boxShadow: 'var(--shadow)'
             }}>
-              <h3 style={{ marginBottom: '1.25rem', color: '#fff' }}>📋 Tóm tắt</h3>
+              <h3 style={{ marginBottom: '1.25rem', color: 'var(--text-primary)' }}>{t('booking.summary')}</h3>
 
-              <div style={{ borderBottom: '1px solid rgba(255,255,255,0.08)', paddingBottom: '1rem', marginBottom: '1rem' }}>
-                <p style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.6)', marginBottom: '0.5rem' }}>Sự kiện:</p>
-                <p style={{ fontWeight: 600, color: '#fff' }}>{event.title}</p>
-                <p style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.4)', marginTop: '0.25rem' }}>
-                  📅 {new Date(event.startDate).toLocaleDateString('vi-VN')}
+              <div style={{ borderBottom: '1px solid var(--border)', paddingBottom: '1rem', marginBottom: '1rem' }}>
+                <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>{t('booking.event')}</p>
+                <p style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{event.title}</p>
+                <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '0.25rem' }}>
+                  📅 {new Date(event.startDate).toLocaleDateString(locale)}
                 </p>
               </div>
 
@@ -231,33 +237,33 @@ export default function BookingPage() {
                 <>
                   <div style={{ marginBottom: '1rem' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                      <span style={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.9rem' }}>Khu vực:</span>
-                      <span style={{ color: selectedZone.color || '#a78bfa', fontWeight: 600 }}>{selectedZone.name}</span>
+                      <span style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>{t('booking.zone')}</span>
+                      <span style={{ color: selectedZone.color || 'var(--purple)', fontWeight: 600 }}>{selectedZone.name}</span>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                      <span style={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.9rem' }}>Đơn giá:</span>
-                      <span style={{ color: '#fff' }}>{selectedZone.price.toLocaleString('vi-VN')}đ</span>
+                      <span style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>{t('booking.unitPrice')}</span>
+                      <span style={{ color: 'var(--text-primary)' }}>{selectedZone.price.toLocaleString(locale)}đ</span>
                     </div>
                     <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                      <span style={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.9rem' }}>Số lượng:</span>
-                      <span style={{ color: '#fff' }}>× {quantity}</span>
+                      <span style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>{t('booking.quantity')}</span>
+                      <span style={{ color: 'var(--text-primary)' }}>× {quantity}</span>
                     </div>
                   </div>
 
                   {/* 🎁 COUPON SECTION */}
                   <div className="coupon-section">
-                    <h4 style={{ fontSize: '0.9rem', color: 'rgba(255,255,255,0.7)', marginBottom: '0.5rem' }}>🎁 Mã giảm giá</h4>
+                    <h4 style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>{t('booking.couponTitle')}</h4>
                     {!couponInfo ? (
                       <>
                         <div className="coupon-input-wrap">
                           <input
                             className="coupon-input"
-                            placeholder="Nhập mã coupon"
+                            placeholder={t('booking.couponPlaceholder')}
                             value={couponCode}
                             onChange={e => setCouponCode(e.target.value.toUpperCase())}
                           />
                           <button className="coupon-apply-btn" onClick={handleApplyCoupon} disabled={couponLoading || !couponCode.trim()}>
-                            {couponLoading ? '⏳' : 'Áp dụng'}
+                            {couponLoading ? '⏳' : t('booking.apply')}
                           </button>
                         </div>
                         {couponError && <div className="coupon-error">❌ {couponError}</div>}
@@ -271,23 +277,23 @@ export default function BookingPage() {
                   </div>
 
                   {/* Price breakdown */}
-                  <div style={{ padding: '1rem 0', borderTop: '1px solid rgba(255,255,255,0.08)', marginTop: '1rem' }}>
+                  <div style={{ padding: '1rem 0', borderTop: '1px solid var(--border)', marginTop: '1rem' }}>
                     {couponDiscount > 0 && (
                       <>
                         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.4rem' }}>
-                          <span style={{ color: 'rgba(255,255,255,0.5)', fontSize: '0.9rem' }}>Tạm tính:</span>
-                          <span style={{ color: 'rgba(255,255,255,0.5)' }}>{totalPriceBeforeDiscount.toLocaleString('vi-VN')}đ</span>
+                          <span style={{ color: 'var(--text-muted)', fontSize: '0.9rem' }}>{t('booking.subtotal')}</span>
+                          <span style={{ color: 'var(--text-muted)' }}>{totalPriceBeforeDiscount.toLocaleString(locale)}đ</span>
                         </div>
                         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.4rem' }}>
-                          <span style={{ color: '#86efac', fontSize: '0.9rem' }}>Giảm giá:</span>
-                          <span style={{ color: '#86efac' }}>-{couponDiscount.toLocaleString('vi-VN')}đ</span>
+                          <span style={{ color: 'var(--success)', fontSize: '0.9rem' }}>{t('booking.discount')}</span>
+                          <span style={{ color: 'var(--success)' }}>-{couponDiscount.toLocaleString(locale)}đ</span>
                         </div>
                       </>
                     )}
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem' }}>
-                      <span style={{ fontWeight: 700, fontSize: '1rem', color: '#fff' }}>Tổng tiền:</span>
-                      <span style={{ fontWeight: 800, fontSize: '1.4rem', color: '#a78bfa' }}>
-                        {finalPrice.toLocaleString('vi-VN')}đ
+                      <span style={{ fontWeight: 700, fontSize: '1rem', color: 'var(--text-primary)' }}>{t('booking.total')}</span>
+                      <span style={{ fontWeight: 800, fontSize: '1.4rem', color: 'var(--purple)' }}>
+                        {finalPrice.toLocaleString(locale)}đ
                       </span>
                     </div>
                   </div>
@@ -304,15 +310,15 @@ export default function BookingPage() {
                       cursor: submitting ? 'not-allowed' : 'pointer', transition: 'all 0.2s'
                     }}
                   >
-                    {submitting ? '⏳ Đang xử lý...' : '💳 Xác nhận đặt vé'}
+                    {submitting ? t('booking.processing') : t('booking.confirmBook')}
                   </button>
-                  <p style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.3)', textAlign: 'center', marginTop: '0.75rem' }}>
-                    Thanh toán mô phỏng — số dư sẽ bị trừ tự động
+                  <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textAlign: 'center', marginTop: '0.75rem' }}>
+                    {t('booking.paymentNote')}
                   </p>
                 </>
               ) : (
-                <div style={{ textAlign: 'center', padding: '2rem 0', color: 'rgba(255,255,255,0.4)' }}>
-                  👆 Chọn khu vực bên trái để tiếp tục
+                <div style={{ textAlign: 'center', padding: '2rem 0', color: 'var(--text-muted)' }}>
+                  {t('booking.selectZonePrompt')}
                 </div>
               )}
             </div>

@@ -1,15 +1,17 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import axiosInstance from '../../utils/axiosInstance';
 import useAuthStore from '../../store/authStore';
-
-const formatDate = (d) => d ? new Date(d).toLocaleDateString('vi-VN') : '';
 
 export default function SavedEventsPage() {
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
   const { user } = useAuthStore();
   const navigate = useNavigate();
+  const { t, i18n } = useTranslation();
+  const locale = i18n.language === 'vi' ? 'vi-VN' : 'en-US';
+  const formatDate = (d) => d ? new Date(d).toLocaleDateString(locale) : '';
 
   useEffect(() => {
     fetchSaved();
@@ -39,14 +41,14 @@ export default function SavedEventsPage() {
   return (
     <div className="page">
       <div className="container page-content">
-        <h2 className="mb-32">❤️ Sự kiện đã lưu</h2>
+        <h2 className="mb-32">{t('savedEvents.title')}</h2>
         
         {events.length === 0 ? (
           <div className="text-center" style={{ padding: '80px 0' }}>
             <div style={{ fontSize: '4rem', marginBottom: 16 }}>💔</div>
-            <h3>Bạn chưa có sự kiện yêu thích nào</h3>
+            <h3>{t('savedEvents.empty')}</h3>
             <button className="btn btn-primary mt-16" onClick={() => navigate('/')}>
-              Khám phá sự kiện
+              {t('savedEvents.explore')}
             </button>
           </div>
         ) : (
@@ -63,7 +65,7 @@ export default function SavedEventsPage() {
                     className="btn btn-icon" 
                     style={{ position: 'absolute', top: -20, right: 16, background: 'var(--bg-card)', borderRadius: '50%', border: '1px solid var(--border)', boxShadow: 'var(--shadow)' }}
                     onClick={(e) => handleUnsave(e, event._id)}
-                    title="Bỏ lưu"
+                    title={t('savedEvents.unsave')}
                   >
                     ❤️
                   </button>

@@ -1,10 +1,13 @@
 import { useState, useEffect, useRef } from 'react';
 import { Html5QrcodeScanner } from 'html5-qrcode';
+import { useTranslation } from 'react-i18next';
 import axiosInstance from '../../utils/axiosInstance';
 import Navbar from '../../components/common/Navbar';
 import '../events/Events.css';
 
 export default function CheckInPage() {
+  const { t, i18n } = useTranslation();
+  const locale = i18n.language === 'vi' ? 'vi-VN' : 'en-US';
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
   const [manualCode, setManualCode] = useState('');
@@ -29,7 +32,6 @@ export default function CheckInPage() {
   }, []);
 
   const onScanSuccess = (decodedText) => {
-    // Extract code from QR: "EVENTHUB:EVH-XXXX-XXXX"
     const code = decodedText.replace('EVENTHUB:', '').trim();
     if (code) processCheckIn(code);
   };
@@ -44,15 +46,15 @@ export default function CheckInPage() {
       const { data } = await axiosInstance.post(`/tickets/${code}/check-in`);
       setResult({ success: true, message: data.message, ticket: data.ticket });
       setHistory(prev => [{
-        code, time: new Date().toLocaleTimeString('vi-VN'),
+        code, time: new Date().toLocaleTimeString(locale),
         name: data.ticket?.userFullName, event: data.ticket?.eventTitle,
         status: 'success'
       }, ...prev]);
     } catch (err) {
-      const errMsg = err.response?.data?.error || 'Check-in thất bại';
+      const errMsg = err.response?.data?.error || t('checkin.failed');
       setResult({ success: false, message: errMsg });
       setHistory(prev => [{
-        code, time: new Date().toLocaleTimeString('vi-VN'),
+        code, time: new Date().toLocaleTimeString(locale),
         name: '—', event: '—', status: 'error', message: errMsg
       }, ...prev]);
     } finally {
@@ -72,7 +74,7 @@ export default function CheckInPage() {
     <>
       <Navbar />
       <div className="page-container" style={{ maxWidth: 700, margin: '0 auto' }}>
-        <h1 className="page-title">🔐 Check-in bằng QR Code</h1>
+        <h1 className="page-title">{t('checkin.title')}</h1>
 
         {/* Result banner */}
         {result && (
@@ -93,43 +95,44 @@ export default function CheckInPage() {
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem', marginTop: '1.5rem' }}>
           {/* QR Scanner */}
           <div className="checkin-scanner-card">
-            <h3 style={{ marginBottom: '1rem' }}>📷 Quét mã QR</h3>
-            <div id="qr-reader" style={{ borderRadius: '12px', overflow: 'hidden' }} />
+            <h3 style={{ marginBottom: '1rem' }}>{t('checkin.scanTitle')}</h3>
+            <div id="qr-reader" style={{ borderRadius: '12px', overflow: 'hidden' }} ref={scannerRef} />
           </div>
 
           {/* Manual input */}
           <div>
             <div className="checkin-scanner-card" style={{ marginBottom: '1.5rem' }}>
-              <h3 style={{ marginBottom: '1rem' }}>⌨️ Nhập mã vé thủ công</h3>
+              <h3 style={{ marginBottom: '1rem' }}>{t('checkin.manualTitle')}</h3>
               <form onSubmit={handleManual} style={{ display: 'flex', gap: '0.5rem' }}>
                 <input
                   value={manualCode}
                   onChange={e => setManualCode(e.target.value.toUpperCase())}
-                  placeholder="EVH-XXXX-XXXX"
-                  style={{ flex: 1, padding: '0.75rem', borderRadius: '8px', background: 'rgba(0,0,0,0.3)', color: '#fff', border: '1px solid rgba(255,255,255,0.15)', fontFamily: 'monospace', fontSize: '1rem' }}
+                  placeholder={t('checkin.manualPlaceholder')}
+                  className="checkin-manual-input"
+                  style={{ flex: 1, padding: '0.75rem', borderRadius: '8px', background: 'var(--bg-input)', color: 'var(--text-primary)', border: '1px solid var(--border)', fontFamily: 'monospace', fontSize: '1rem' }}
                 />
                 <button type="submit" className="btn-register" style={{ width: 'auto', padding: '0.75rem 1.5rem' }}
                   disabled={loading}>
-                  {loading ? '⏳' : '✅'} Check-in
+                  {loading ? '⏳' : t('checkin.checkinBtn')}
                 </button>
               </form>
             </div>
 
             {/* Stats */}
             <div className="checkin-scanner-card">
-              <h3>📊 Thống kê</h3>
+              <h3>{t('checkin.statsTitle')}</h3>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', marginTop: '0.75rem' }}>
-                <div style={{ textAlign: 'center', padding: '0.75rem', background: 'rgba(76,175,80,0.1)', borderRadius: '10px' }}>
-                  <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#86efac' }}>
+                <div style={{ textAlign: 'center', padding: '0.75rem', background: 'rgba(76,175,80,0.1)', borderRadius: '10px', border: '1px solid rgba(76,175,80,0.2)' }}>
+                  <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#4ade80' }}>
                     {history.filter(h => h.status === 'success').length}
                   </div>
-                  <div style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.5)' }}>Thành công</div>
+                  <div className="checkin-stat-label" style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{t('checkin.success')}</div>
                 </div>
-                <div style={{ textAlign: 'center', padding: '0.75rem', background: 'rgba(239,68,68,0.1)', borderRadius: '10px' }}>
-                  <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#fca5a5' }}>
+                <div style={{ textAlign: 'center', padding: '0.75rem', background: 'rgba(239,68,68,0.1)', borderRadius: '10px', border: '1px solid rgba(239,68,68,0.2)' }}>
+                  <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#f87171' }}>
                     {history.filter(h => h.status === 'error').length}
                   </div>
-                  <div style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.5)' }}>Lỗi</div>
+                  <div className="checkin-stat-label" style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>{t('checkin.errors')}</div>
                 </div>
               </div>
             </div>
@@ -139,10 +142,10 @@ export default function CheckInPage() {
         {/* History */}
         {history.length > 0 && (
           <div style={{ marginTop: '2rem' }}>
-            <h3 style={{ marginBottom: '1rem' }}>📋 Lịch sử check-in</h3>
+            <h3 style={{ marginBottom: '1rem' }}>{t('checkin.historyTitle')}</h3>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
               {history.map((h, i) => (
-                <div key={i} style={{
+                <div key={i} className="checkin-history-item" style={{
                   display: 'flex', alignItems: 'center', gap: '1rem',
                   padding: '0.75rem 1rem', borderRadius: '8px',
                   background: h.status === 'success' ? 'rgba(76,175,80,0.08)' : 'rgba(239,68,68,0.08)',
@@ -150,12 +153,12 @@ export default function CheckInPage() {
                 }}>
                   <span style={{ fontSize: '1.2rem' }}>{h.status === 'success' ? '✅' : '❌'}</span>
                   <div style={{ flex: 1 }}>
-                    <div style={{ fontFamily: 'monospace', fontWeight: 600, color: '#fff' }}>{h.code}</div>
-                    <div style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.5)' }}>
+                    <div className="checkin-history-code" style={{ fontFamily: 'monospace', fontWeight: 600, color: 'var(--text-primary)' }}>{h.code}</div>
+                    <div className="checkin-history-meta" style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
                       {h.name} • {h.event} {h.message ? `• ${h.message}` : ''}
                     </div>
                   </div>
-                  <span style={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.8rem' }}>{h.time}</span>
+                  <span className="checkin-history-time" style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>{h.time}</span>
                 </div>
               ))}
             </div>

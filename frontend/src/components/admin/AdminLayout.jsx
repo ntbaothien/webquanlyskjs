@@ -1,20 +1,22 @@
 import { NavLink, useLocation } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import Navbar from '../../components/common/Navbar';
 import '../../pages/admin/Admin.css';
 
-const sidebarItems = [
-  { label: 'Quản trị', isSection: true },
-  { path: '/admin', icon: '📊', label: 'Tổng quan', end: true },
-  { path: '/admin/users', icon: '👥', label: 'Người dùng' },
-  { path: '/admin/events', icon: '🎪', label: 'Sự kiện' },
-  { path: '/admin/coupons', icon: '🎁', label: 'Mã giảm giá' },
-  { path: '/admin/reports', icon: '📈', label: 'Báo cáo' },
-  { path: '/admin/violations', icon: '🚨', label: 'Vi phạm' },
-  { path: '/admin/topups',    icon: '💳', label: 'Nạp tiền' },
-];
-
 export default function AdminLayout({ children, title, subtitle }) {
   const location = useLocation();
+  const { t } = useTranslation();
+
+  const sidebarItems = [
+    { label: t('admin.sidebarSection'), isSection: true },
+    { path: '/admin',            icon: '📊', label: t('admin.sidebarOverview'),   end: true },
+    { path: '/admin/users',      icon: '👥', label: t('admin.sidebarUsers') },
+    { path: '/admin/events',     icon: '🎪', label: t('admin.sidebarEvents') },
+    { path: '/admin/coupons',    icon: '🎁', label: t('admin.sidebarCoupons') },
+    { path: '/admin/reports',    icon: '📈', label: t('admin.sidebarReports') },
+    { path: '/admin/violations', icon: '🚨', label: t('admin.sidebarViolations') },
+    { path: '/admin/topups',     icon: '💳', label: t('admin.sidebarTopups') },
+  ];
 
   return (
     <>
@@ -24,7 +26,7 @@ export default function AdminLayout({ children, title, subtitle }) {
         <aside className="admin-sidebar">
           <div className="sidebar-header">
             <h2>🛡️ Admin Panel</h2>
-            <p>Quản lý hệ thống EventHub</p>
+            <p>{t('admin.sidebarSub')}</p>
           </div>
 
           <nav>

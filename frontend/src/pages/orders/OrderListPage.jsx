@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import axiosInstance from '../../utils/axiosInstance';
 import Navbar from '../../components/common/Navbar';
 import '../events/Events.css';
@@ -11,6 +12,7 @@ const ZONE_COLORS = ['#FFD700', '#4FC3F7', '#81C784', '#FF8A65', '#CE93D8', '#4D
 export default function EventFormPage() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [form, setForm] = useState({
     title: '', description: '', location: '',
     startDate: '', endDate: '', maxCapacity: 0,
@@ -62,7 +64,7 @@ export default function EventFormPage() {
     e.preventDefault();
     setError('');
     if (!form.isFree && zones.length === 0) {
-      setError('Sự kiện có phí cần ít nhất 1 khu vực (zone)');
+      setError(t('eventForm.paidNeedsZone'));
       return;
     }
     setLoading(true);
@@ -88,7 +90,7 @@ export default function EventFormPage() {
       }
       navigate('/organizer/my-events');
     } catch (err) {
-      setError(err.response?.data?.error || 'Có lỗi xảy ra');
+      setError(err.response?.data?.error || t('common.error'));
     } finally {
       setLoading(false);
     }
@@ -101,80 +103,86 @@ export default function EventFormPage() {
       <Navbar />
       <div className="page-container">
         <div className="form-card" style={{ maxWidth: 760 }}>
-          <h2>{id ? '✏️ Chỉnh sửa sự kiện' : '🎪 Tạo sự kiện mới'}</h2>
+          <h2>{id ? t('eventForm.editTitle') : t('eventForm.createTitle')}</h2>
           {error && <div className="auth-error">{error}</div>}
           <form onSubmit={handleSubmit}>
-            {/* === Thông tin cơ bản === */}
+
             <div className="form-group">
-              <label>Tiêu đề *</label>
-              <input type="text" value={form.title} onChange={f('title')} placeholder="Tên sự kiện" required />
+              <label>{t('eventForm.titleLabel')}</label>
+              <input type="text" value={form.title} onChange={f('title')}
+                placeholder={t('eventForm.titlePlaceholder')} required />
             </div>
+
             <div className="form-group">
-              <label>Mô tả *</label>
-              <textarea value={form.description} onChange={f('description')} placeholder="Mô tả sự kiện..." required />
+              <label>{t('eventForm.descLabel')}</label>
+              <textarea value={form.description} onChange={f('description')}
+                placeholder={t('eventForm.descPlaceholder')} required />
             </div>
+
             <div className="form-group">
-              <label>Địa điểm *</label>
-              <input type="text" value={form.location} onChange={f('location')} placeholder="Địa chỉ tổ chức" required />
+              <label>{t('eventForm.locationLabel')}</label>
+              <input type="text" value={form.location} onChange={f('location')}
+                placeholder={t('eventForm.locationPlaceholder')} required />
             </div>
+
             <div className="form-row">
               <div className="form-group">
-                <label>Ngày bắt đầu</label>
+                <label>{t('eventForm.startDate')}</label>
                 <input type="datetime-local" value={form.startDate} onChange={f('startDate')} />
               </div>
               <div className="form-group">
-                <label>Ngày kết thúc</label>
+                <label>{t('eventForm.endDate')}</label>
                 <input type="datetime-local" value={form.endDate} onChange={f('endDate')} />
               </div>
             </div>
+
             <div className="form-row">
               <div className="form-group">
-                <label>Số chỗ tối đa (0 = không giới hạn)</label>
+                <label>{t('eventForm.maxCapacity')}</label>
                 <input type="number" min="0" value={form.maxCapacity} onChange={f('maxCapacity')} />
               </div>
               <div className="form-group">
-                <label>Trạng thái</label>
-                <select 
-                  value={form.status} 
+                <label>{t('eventForm.statusLabel')}</label>
+                <select
+                  value={form.status}
                   onChange={f('status')}
                   style={{
-                    width: '100%',
-                    padding: '0.75rem',
-                    borderRadius: '10px',
-                    backgroundColor: 'rgba(26, 26, 46, 0.8)',
-                    color: '#fff',
-                    border: '1px solid rgba(255,255,255,0.2)',
-                    fontSize: '1rem',
-                    cursor: 'pointer'
+                    width: '100%', padding: '0.75rem', borderRadius: '10px',
+                    backgroundColor: 'rgba(26, 26, 46, 0.8)', color: '#fff',
+                    border: '1px solid rgba(255,255,255,0.2)', fontSize: '1rem', cursor: 'pointer'
                   }}
                 >
-                  <option style={{ backgroundColor: '#1a1a2e', color: '#fff' }} value="DRAFT">📝 DRAFT (Nháp)</option>
-                  <option style={{ backgroundColor: '#1a1a2e', color: '#fff' }} value="PUBLISHED">✅ PUBLISHED (Công khai)</option>
-                  <option style={{ backgroundColor: '#1a1a2e', color: '#fff' }} value="CANCELLED">❌ CANCELLED (Hủy)</option>
+                  <option style={{ backgroundColor: '#1a1a2e', color: '#fff' }} value="DRAFT">{t('eventForm.statusDraft')}</option>
+                  <option style={{ backgroundColor: '#1a1a2e', color: '#fff' }} value="PUBLISHED">{t('eventForm.statusPublished')}</option>
+                  <option style={{ backgroundColor: '#1a1a2e', color: '#fff' }} value="CANCELLED">{t('eventForm.statusCancelled')}</option>
                 </select>
               </div>
             </div>
+
             <div className="form-group">
-              <label>Tags (cách nhau bởi dấu phẩy)</label>
-              <input type="text" value={form.tagsInput} onChange={f('tagsInput')} placeholder="music, entertainment, tech" />
+              <label>{t('eventForm.tagsLabel')}</label>
+              <input type="text" value={form.tagsInput} onChange={f('tagsInput')}
+                placeholder="music, entertainment, tech" />
             </div>
+
             <div className="form-group">
-              <label>Ảnh bìa (Banner)</label>
+              <label>{t('eventForm.bannerLabel')}</label>
               <input type="file" accept="image/*" style={{ color: 'rgba(255,255,255,0.7)' }}
                 onChange={e => setBannerFile(e.target.files[0])} />
             </div>
 
-            {/* === Toggle Free/Paid === */}
+            {/* === Free / Paid toggle === */}
             <div className="form-group" style={{
-              background: 'rgba(255,255,255,0.04)',
-              borderRadius: '12px', padding: '1rem 1.25rem',
-              border: '1px solid rgba(255,255,255,0.1)'
+              background: 'rgba(255,255,255,0.04)', borderRadius: '12px',
+              padding: '1rem 1.25rem', border: '1px solid rgba(255,255,255,0.1)'
             }}>
-              <label style={{ marginBottom: '0.75rem', display: 'block', fontWeight: 700 }}>Loại sự kiện</label>
+              <label style={{ marginBottom: '0.75rem', display: 'block', fontWeight: 700 }}>
+                {t('eventForm.eventTypeLabel')}
+              </label>
               <div style={{ display: 'flex', gap: '1rem' }}>
                 {[
-                  { val: true, label: '🆓 Miễn phí', desc: 'Người dùng đăng ký không mất phí' },
-                  { val: false, label: '💳 Có phí', desc: 'Bán vé theo khu vực (zone)' },
+                  { val: true,  label: t('eventForm.freeLabel'), desc: t('eventForm.freeDesc') },
+                  { val: false, label: t('eventForm.paidLabel'), desc: t('eventForm.paidDesc') },
                 ].map(opt => (
                   <div key={String(opt.val)} onClick={() => setForm({ ...form, isFree: opt.val })}
                     style={{
@@ -184,32 +192,38 @@ export default function EventFormPage() {
                       transition: 'all 0.2s'
                     }}
                   >
-                    <div style={{ fontWeight: 700, color: form.isFree === opt.val ? '#a78bfa' : 'rgba(255,255,255,0.7)' }}>{opt.label}</div>
-                    <div style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.4)', marginTop: '0.25rem' }}>{opt.desc}</div>
+                    <div style={{ fontWeight: 700, color: form.isFree === opt.val ? '#a78bfa' : 'rgba(255,255,255,0.7)' }}>
+                      {opt.label}
+                    </div>
+                    <div style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.4)', marginTop: '0.25rem' }}>
+                      {opt.desc}
+                    </div>
                   </div>
                 ))}
               </div>
             </div>
 
-            {/* === Zone management (chỉ khi có phí) === */}
+            {/* === Zone management (paid only) === */}
             {!form.isFree && (
               <div className="form-group" style={{
                 background: 'rgba(255,255,255,0.03)', borderRadius: '12px',
                 padding: '1.25rem', border: '1px solid rgba(167,139,250,0.3)'
               }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                  <label style={{ fontWeight: 700, margin: 0 }}>🗺️ Khu vực (Zones)</label>
+                  <label style={{ fontWeight: 700, margin: 0 }}>{t('eventForm.zonesLabel')}</label>
                   <button type="button" onClick={addZone} style={{
                     padding: '0.4rem 1rem', borderRadius: '8px',
                     background: 'rgba(108,99,255,0.2)', border: '1px solid rgba(108,99,255,0.4)',
                     color: '#a78bfa', cursor: 'pointer', fontSize: '0.85rem', fontWeight: 600
-                  }}>+ Thêm Zone</button>
+                  }}>{t('eventForm.addZone')}</button>
                 </div>
+
                 {zones.length === 0 && (
                   <p style={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.85rem', textAlign: 'center', padding: '1rem' }}>
-                    Chưa có zone. Nhấn "+ Thêm Zone" để bắt đầu.
+                    {t('eventForm.noZones')}
                   </p>
                 )}
+
                 {zones.map((zone, i) => (
                   <div key={zone.id || i} style={{
                     background: 'rgba(255,255,255,0.04)', borderRadius: '10px',
@@ -218,13 +232,13 @@ export default function EventFormPage() {
                   }}>
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
                       <div className="form-group" style={{ margin: 0 }}>
-                        <label style={{ fontSize: '0.8rem' }}>Tên khu *</label>
+                        <label style={{ fontSize: '0.8rem' }}>{t('eventForm.zoneName')}</label>
                         <input type="text" value={zone.name}
                           onChange={e => updateZone(i, 'name', e.target.value)}
-                          placeholder="VD: VIP, Standard..." required={!form.isFree} />
+                          placeholder={t('eventForm.namePlaceholder')} required={!form.isFree} />
                       </div>
                       <div className="form-group" style={{ margin: 0 }}>
-                        <label style={{ fontSize: '0.8rem' }}>Màu sắc</label>
+                        <label style={{ fontSize: '0.8rem' }}>{t('eventForm.zoneColor')}</label>
                         <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', paddingTop: '0.25rem' }}>
                           {ZONE_COLORS.map(c => (
                             <div key={c} onClick={() => updateZone(i, 'color', c)}
@@ -237,18 +251,18 @@ export default function EventFormPage() {
                         </div>
                       </div>
                       <div className="form-group" style={{ margin: 0, gridColumn: '1/-1' }}>
-                        <label style={{ fontSize: '0.8rem' }}>Mô tả</label>
+                        <label style={{ fontSize: '0.8rem' }}>{t('eventForm.zoneDesc')}</label>
                         <input type="text" value={zone.description}
                           onChange={e => updateZone(i, 'description', e.target.value)}
-                          placeholder="VD: Hàng ghế đầu, gần sân khấu..." />
+                          placeholder={t('eventForm.zoneDescPlaceholder')} />
                       </div>
                       <div className="form-group" style={{ margin: 0 }}>
-                        <label style={{ fontSize: '0.8rem' }}>Tổng số ghế</label>
+                        <label style={{ fontSize: '0.8rem' }}>{t('eventForm.zoneTotalSeats')}</label>
                         <input type="number" min="1" value={zone.totalSeats}
                           onChange={e => updateZone(i, 'totalSeats', e.target.value)} required={!form.isFree} />
                       </div>
                       <div className="form-group" style={{ margin: 0 }}>
-                        <label style={{ fontSize: '0.8rem' }}>Giá vé (VND)</label>
+                        <label style={{ fontSize: '0.8rem' }}>{t('eventForm.zonePrice')}</label>
                         <input type="number" min="0" value={zone.price}
                           onChange={e => updateZone(i, 'price', e.target.value)} required={!form.isFree} />
                       </div>
@@ -258,7 +272,7 @@ export default function EventFormPage() {
                         marginTop: '0.5rem', padding: '0.3rem 0.8rem', borderRadius: '6px',
                         background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)',
                         color: '#ef4444', cursor: 'pointer', fontSize: '0.8rem'
-                      }}>🗑 Xóa zone này</button>
+                      }}>{t('eventForm.removeZone')}</button>
                   </div>
                 ))}
               </div>
@@ -266,9 +280,11 @@ export default function EventFormPage() {
 
             <div className="form-actions">
               <button type="submit" className="btn-primary" style={{ flex: 1 }} disabled={loading}>
-                {loading ? 'Đang lưu...' : id ? 'Cập nhật' : 'Tạo sự kiện'}
+                {loading ? t('eventForm.saving') : id ? t('eventForm.update') : t('eventForm.create')}
               </button>
-              <button type="button" className="btn-cancel" onClick={() => navigate(-1)}>Hủy</button>
+              <button type="button" className="btn-cancel" onClick={() => navigate(-1)}>
+                {t('common.cancel')}
+              </button>
             </div>
           </form>
         </div>

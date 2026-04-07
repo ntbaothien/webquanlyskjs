@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import axiosInstance from '../../utils/axiosInstance';
 import { getImageUrl } from '../../utils/getImageUrl';
 import Navbar from '../../components/common/Navbar';
@@ -9,21 +10,8 @@ import TrendingSection from '../../components/common/TrendingSection';
 import { SkeletonList } from '../../components/common/Skeleton';
 import './Events.css';
 
-const SORT_OPTIONS = [
-  { value: 'date_asc',  label: '📅 Ngày gần nhất' },
-  { value: 'date_desc', label: '📅 Ngày xa nhất' },
-  { value: 'popular',   label: '🔥 Phổ biến nhất' },
-  { value: 'newest',    label: '✨ Mới đăng nhất' },
-];
-
-const TIME_STATUS_OPTIONS = [
-  { value: '',         label: '📋 Tất cả' },
-  { value: 'upcoming', label: '⏳ Sắp diễn ra' },
-  { value: 'ongoing',  label: '▶️ Đang diễn ra' },
-  { value: 'past',     label: '🏁 Đã kết thúc' },
-];
-
 export default function EventListPage() {
+  const { t, i18n } = useTranslation();
   const [events, setEvents] = useState([]);
   const [trending, setTrending] = useState([]);
   const [featured, setFeatured] = useState([]);
@@ -36,6 +24,20 @@ export default function EventListPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
   const debounceRef = useRef(null);
+
+  const SORT_OPTIONS = [
+    { value: 'date_asc',  label: t('events.sortNearest') },
+    { value: 'date_desc', label: t('events.sortFarthest') },
+    { value: 'popular',   label: t('events.sortPopular') },
+    { value: 'newest',    label: t('events.sortNewest') },
+  ];
+
+  const TIME_STATUS_OPTIONS = [
+    { value: '',         label: t('events.allStatuses') },
+    { value: 'upcoming', label: t('events.statusUpcoming') },
+    { value: 'ongoing',  label: t('events.statusOngoing') },
+    { value: 'past',     label: t('events.statusPast') },
+  ];
 
   // Read all filters from URL
   const keyword    = searchParams.get('keyword') || '';
@@ -155,10 +157,12 @@ export default function EventListPage() {
     if (diff <= 0) return null;
     const days = Math.floor(diff / (1000 * 60 * 60 * 24));
     if (days > 30) return null;
-    if (days === 0) return 'Hôm nay';
-    if (days === 1) return 'Ngày mai';
-    return `Còn ${days} ngày`;
+    if (days === 0) return t('events.todayLabel');
+    if (days === 1) return t('events.tomorrow');
+    return t('events.daysLeft', { count: days });
   };
+
+  const locale = i18n.language === 'vi' ? 'vi-VN' : 'en-US';
 
   const tagCategoryInfo = tag ? getCategoryInfo(tag) : null;
 
@@ -178,13 +182,13 @@ export default function EventListPage() {
         {/* ── Quick time buttons ── */}
         <div className="quick-filters">
           <button className={`qf-btn ${timeFilter === '' && !timeStatus ? 'active' : ''}`}
-            onClick={() => updateMultiple({ time: '', timeStatus: '' })}>📋 Tất cả</button>
+            onClick={() => updateMultiple({ time: '', timeStatus: '' })}>📋 {t('events.allTime')}</button>
           <button className={`qf-btn ${timeFilter === 'today' ? 'active' : ''}`}
-            onClick={() => updateMultiple({ time: 'today', timeStatus: '' })}>📅 Hôm nay</button>
+            onClick={() => updateMultiple({ time: 'today', timeStatus: '' })}>📅 {t('events.today')}</button>
           <button className={`qf-btn ${timeFilter === 'weekend' ? 'active' : ''}`}
-            onClick={() => updateMultiple({ time: 'weekend', timeStatus: '' })}>🌙 Cuối tuần</button>
+            onClick={() => updateMultiple({ time: 'weekend', timeStatus: '' })}>🌙 {t('events.weekend')}</button>
           <button className={`qf-btn ${timeFilter === 'month' ? 'active' : ''}`}
-            onClick={() => updateMultiple({ time: 'month', timeStatus: '' })}>📆 Tháng này</button>
+            onClick={() => updateMultiple({ time: 'month', timeStatus: '' })}>📆 {t('events.thisMonth')}</button>
         </div>
 
         {/* ── Main search bar ── */}
@@ -195,7 +199,7 @@ export default function EventListPage() {
             </svg>
             <input
               type="text"
-              placeholder="Tìm kiếm sự kiện, ban tổ chức, tags..."
+              placeholder={t('events.searchPlaceholder')}
               value={searchInput}
               onChange={e => handleSearchChange(e.target.value)}
             />
@@ -207,7 +211,7 @@ export default function EventListPage() {
 
           <select className="search-location-select" value={location}
             onChange={e => updateFilter('location', e.target.value)}>
-            <option value="">📍 Tất cả địa điểm</option>
+            <option value="">📍 {t('events.allLocations')}</option>
             {locations.map(l => <option key={l} value={l}>{l}</option>)}
           </select>
 
@@ -223,7 +227,7 @@ export default function EventListPage() {
               <line x1="4" y1="6" x2="20" y2="6"/><line x1="8" y1="12" x2="16" y2="12"/>
               <line x1="11" y1="18" x2="13" y2="18"/>
             </svg>
-            Lọc nâng cao
+            {t('events.advancedFilter')}
             {advancedActiveCount > 0 && (
               <span className="adv-badge">{advancedActiveCount}</span>
             )}
@@ -236,19 +240,19 @@ export default function EventListPage() {
             {/* Row 1: Price type + Status */}
             <div className="adv-row">
               <div className="adv-group">
-                <label className="adv-label">Loại vé</label>
+                <label className="adv-label">{t('events.priceType')}</label>
                 <div className="adv-toggle-group">
                   <button className={`adv-toggle ${freeFilter === '' ? 'active' : ''}`}
-                    onClick={() => updateMultiple({ free: '', priceMax: '' })}>Tất cả</button>
+                    onClick={() => updateMultiple({ free: '', priceMax: '' })}>{t('events.all')}</button>
                   <button className={`adv-toggle ${freeFilter === 'true' ? 'active' : ''}`}
-                    onClick={() => updateMultiple({ free: 'true', priceMax: '' })}>🆓 Miễn phí</button>
+                    onClick={() => updateMultiple({ free: 'true', priceMax: '' })}>🆓 {t('events.free')}</button>
                   <button className={`adv-toggle ${freeFilter === 'false' ? 'active' : ''}`}
-                    onClick={() => updateFilter('free', 'false')}>💳 Có phí</button>
+                    onClick={() => updateFilter('free', 'false')}>💳 {t('events.paid')}</button>
                 </div>
               </div>
 
               <div className="adv-group">
-                <label className="adv-label">Trạng thái</label>
+                <label className="adv-label">{t('events.status')}</label>
                 <div className="adv-toggle-group">
                   {TIME_STATUS_OPTIONS.map(o => (
                     <button key={o.value}
@@ -266,8 +270,8 @@ export default function EventListPage() {
               {freeFilter === 'false' && (
                 <div className="adv-group">
                   <label className="adv-label">
-                    Giá tối đa: <strong style={{ color: '#a78bfa' }}>
-                      {priceMax ? Number(priceMax).toLocaleString('vi-VN') + 'đ' : 'Không giới hạn'}
+                    {t('events.maxPrice')}: <strong style={{ color: '#a78bfa' }}>
+                      {priceMax ? Number(priceMax).toLocaleString(locale) + 'đ' : t('events.unlimited')}
                     </strong>
                   </label>
                   <div className="adv-price-row">
@@ -283,8 +287,8 @@ export default function EventListPage() {
               )}
 
               <div className="adv-group">
-                <label className="adv-label">Ban tổ chức</label>
-                <input type="text" placeholder="Tìm theo tên ban tổ chức..."
+                <label className="adv-label">{t('events.organizer')}</label>
+                <input type="text" placeholder={t('events.searchOrganizer')}
                   className="adv-input"
                   value={organizer}
                   onChange={e => updateFilter('organizer', e.target.value)} />
@@ -294,13 +298,13 @@ export default function EventListPage() {
             {/* Row 3: Date range */}
             <div className="adv-row">
               <div className="adv-group">
-                <label className="adv-label">Từ ngày</label>
+                <label className="adv-label">{t('events.fromDate')}</label>
                 <input type="date" className="adv-input"
                   value={dateFrom}
                   onChange={e => updateMultiple({ dateFrom: e.target.value, time: '' })} />
               </div>
               <div className="adv-group">
-                <label className="adv-label">Đến ngày</label>
+                <label className="adv-label">{t('events.toDate')}</label>
                 <input type="date" className="adv-input"
                   value={dateTo}
                   min={dateFrom || undefined}
@@ -310,7 +314,7 @@ export default function EventListPage() {
                 <button className="adv-reset-btn" onClick={() => {
                   updateMultiple({ free: '', priceMax: '', timeStatus: '', dateFrom: '', dateTo: '', organizer: '' });
                 }}>
-                  Đặt lại bộ lọc nâng cao
+                  {t('events.resetAdvFilter')}
                 </button>
               </div>
             </div>
@@ -320,7 +324,7 @@ export default function EventListPage() {
         {/* ── Active filter chips ── */}
         {hasActiveFilters && (
           <div className="active-filters">
-            <span className="af-label">Bộ lọc:</span>
+            <span className="af-label">{t('events.activeFilters')}</span>
             {keyword && (
               <span className="af-chip" onClick={() => { setSearchInput(''); updateFilter('keyword', ''); }}>
                 🔍 "{keyword}" ×
@@ -339,7 +343,7 @@ export default function EventListPage() {
             )}
             {timeFilter && (
               <span className="af-chip" onClick={() => updateFilter('time', '')}>
-                📅 {timeFilter === 'today' ? 'Hôm nay' : timeFilter === 'weekend' ? 'Cuối tuần' : 'Tháng này'} ×
+                📅 {timeFilter === 'today' ? t('events.today') : timeFilter === 'weekend' ? t('events.weekend') : t('events.thisMonth')} ×
               </span>
             )}
             {timeStatus && (
@@ -348,23 +352,23 @@ export default function EventListPage() {
               </span>
             )}
             {freeFilter === 'true' && (
-              <span className="af-chip" onClick={() => updateMultiple({ free: '', priceMax: '' })}>🆓 Miễn phí ×</span>
+              <span className="af-chip" onClick={() => updateMultiple({ free: '', priceMax: '' })}>🆓 {t('events.free')} ×</span>
             )}
             {freeFilter === 'false' && (
               <span className="af-chip" onClick={() => updateMultiple({ free: '', priceMax: '' })}>
-                💳 Có phí{priceMax ? ` ≤ ${Number(priceMax).toLocaleString('vi-VN')}đ` : ''} ×
+                💳 {t('events.paid')}{priceMax ? ` ≤ ${Number(priceMax).toLocaleString(locale)}đ` : ''} ×
               </span>
             )}
             {dateFrom && (
-              <span className="af-chip" onClick={() => updateFilter('dateFrom', '')}>📅 Từ {dateFrom} ×</span>
+              <span className="af-chip" onClick={() => updateFilter('dateFrom', '')}>📅 {t('events.fromDate')} {dateFrom} ×</span>
             )}
             {dateTo && (
-              <span className="af-chip" onClick={() => updateFilter('dateTo', '')}>📅 Đến {dateTo} ×</span>
+              <span className="af-chip" onClick={() => updateFilter('dateTo', '')}>📅 {t('events.toDate')} {dateTo} ×</span>
             )}
             {organizer && (
               <span className="af-chip" onClick={() => updateFilter('organizer', '')}>🏢 {organizer} ×</span>
             )}
-            <button className="af-clear" onClick={clearAllFilters}>Xóa tất cả</button>
+            <button className="af-clear" onClick={clearAllFilters}>{t('events.clearAll')}</button>
           </div>
         )}
 
@@ -378,10 +382,10 @@ export default function EventListPage() {
           <h3 className="section-title">
             {tag && tagCategoryInfo
               ? `${tagCategoryInfo.icon} ${tagCategoryInfo.label}`
-              : tag ? `🏷️ ${tag}` : '🎫 Tất cả sự kiện'}
+              : tag ? `🏷️ ${tag}` : t('events.allEventsTitle')}
           </h3>
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
-            {!loading && <span className="section-count">{totalElements} sự kiện</span>}
+            {!loading && <span className="section-count">{totalElements} {t('events.eventsCount')}</span>}
             <span style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.4)' }}>
               {SORT_OPTIONS.find(o => o.value === sortBy)?.label}
             </span>
@@ -393,9 +397,9 @@ export default function EventListPage() {
           events.length === 0 ? (
             <div className="empty-state">
               <span className="empty-emoji">🎭</span>
-              <p>Không tìm thấy sự kiện nào</p>
+              <p>{t('events.noEventsFound')}</p>
               {hasActiveFilters && (
-                <button className="empty-clear" onClick={clearAllFilters}>Xóa bộ lọc</button>
+                <button className="empty-clear" onClick={clearAllFilters}>{t('events.clearFilters')}</button>
               )}
             </div>
           ) : (
@@ -411,7 +415,7 @@ export default function EventListPage() {
                   <div key={event._id} className={`event-card${isPast ? ' event-card-past' : ''}`}
                     onClick={() => navigate(`/events/${event._id}`)}>
                     {!isPast && isHot(event) && <span className="hot-badge">🔥 HOT</span>}
-                    {isPast && <span className="hot-badge" style={{ background: 'rgba(107,114,128,0.85)' }}>🏁 Đã kết thúc</span>}
+                    {isPast && <span className="hot-badge" style={{ background: 'rgba(107,114,128,0.85)' }}>🏁 {t('events.finished')}</span>}
                     <div className="event-img"
                       style={{
                         backgroundImage: eventImage
@@ -420,7 +424,7 @@ export default function EventListPage() {
                       }}>
                       <span className="event-date-badge">
                         {event.startDate
-                          ? new Date(event.startDate).toLocaleDateString('vi-VN', { day: '2-digit', month: 'short' })
+                          ? new Date(event.startDate).toLocaleDateString(locale, { day: '2-digit', month: 'short' })
                           : '—'}
                       </span>
                       {!isPast && countdown && <span className="event-countdown">{countdown}</span>}
@@ -433,7 +437,9 @@ export default function EventListPage() {
                       </div>
                       <div className="event-footer">
                         <span className="event-price">
-                          {minPrice === null ? '🆓 Miễn phí' : `💳 Từ ${minPrice.toLocaleString('vi-VN')}đ`}
+                          {minPrice === null
+                            ? `🆓 ${t('events.free')}`
+                            : `💳 ${t('events.from')} ${minPrice.toLocaleString(locale)}đ`}
                         </span>
                         {firstTagInfo ? (
                           <span className="event-cat-badge" style={{ background: firstTagInfo.gradient }}>

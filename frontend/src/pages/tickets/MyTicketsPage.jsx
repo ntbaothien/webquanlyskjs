@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react';
 import { useLocation, Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import axiosInstance from '../../utils/axiosInstance';
 import Navbar from '../../components/common/Navbar';
 import '../events/Events.css';
 
 export default function MyTicketsPage() {
   const location = useLocation();
+  const { t, i18n } = useTranslation();
   const successMsg = location.state?.message;
 
   const [regs, setRegs] = useState([]);
@@ -14,6 +16,8 @@ export default function MyTicketsPage() {
   const [loading, setLoading] = useState(true);
   const [msg, setMsg] = useState(successMsg || '');
   const [tab, setTab] = useState('all');
+
+  const locale = i18n.language === 'vi' ? 'vi-VN' : 'en-US';
 
   const fetchAll = async () => {
     setLoading(true);
@@ -36,24 +40,24 @@ export default function MyTicketsPage() {
   useEffect(() => { fetchAll(); }, []);
 
   const handleCancelReg = async (regId) => {
-    if (!window.confirm('Bạn có chắc muốn hủy đăng ký không?')) return;
+    if (!window.confirm(t('tickets.cancelRegConfirm'))) return;
     try {
       await axiosInstance.delete(`/registrations/${regId}`);
-      setMsg('Đã hủy đăng ký thành công');
+      setMsg(t('tickets.cancelSuccess'));
       fetchAll();
     } catch (err) {
-      setMsg(err.response?.data?.error || 'Hủy thất bại');
+      setMsg(err.response?.data?.error || t('tickets.cancelFailed'));
     }
   };
 
   const handleCancelBooking = async (bookingId) => {
-    if (!window.confirm('Hủy vé sẽ được hoàn tiền vào số dư. Xác nhận?')) return;
+    if (!window.confirm(t('tickets.cancelRefundConfirm'))) return;
     try {
       await axiosInstance.delete(`/bookings/${bookingId}`);
-      setMsg('Đã hủy vé và hoàn tiền thành công');
+      setMsg(t('tickets.cancelBookingSuccess'));
       fetchAll();
     } catch (err) {
-      setMsg(err.response?.data?.error || 'Hủy thất bại');
+      setMsg(err.response?.data?.error || t('tickets.cancelFailed'));
     }
   };
 
@@ -75,7 +79,7 @@ export default function MyTicketsPage() {
     <>
       <Navbar />
       <div className="page-container">
-        <h1 className="page-title">🎟 Vé & Đặt chỗ của tôi</h1>
+        <h1 className="page-title">{t('tickets.myTicketsTitle')}</h1>
 
         {msg && (
           <div className="msg-box success" style={{ marginBottom: '1.25rem' }}>{msg}</div>
@@ -84,29 +88,24 @@ export default function MyTicketsPage() {
         {/* Tabs */}
         <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem' }}>
           {[
-            { key: 'all', label: `Tất cả (${regs.length + bookings.length})` },
-            { key: 'free', label: `🆓 Miễn phí (${regs.length})` },
-            { key: 'paid', label: `💳 Có phí (${bookings.length})` },
-          ].map(t => (
-            <button key={t.key} onClick={() => setTab(t.key)} style={{
-              padding: '0.5rem 1.25rem',
-              borderRadius: '20px',
-              border: `1px solid ${tab === t.key ? '#6c63ff' : 'rgba(255,255,255,0.15)'}`,
-              background: tab === t.key ? 'rgba(108,99,255,0.2)' : 'transparent',
-              color: tab === t.key ? '#a78bfa' : 'rgba(255,255,255,0.6)',
-              cursor: 'pointer', fontWeight: tab === t.key ? 700 : 400,
-              transition: 'all 0.2s', fontSize: '0.9rem'
-            }}>{t.label}</button>
+            { key: 'all',  label: `${t('tickets.allTab')} (${regs.length + bookings.length})` },
+            { key: 'free', label: `${t('tickets.freeTab')} (${regs.length})` },
+            { key: 'paid', label: `${t('tickets.paidTab')} (${bookings.length})` },
+          ].map(item => (
+            <button key={item.key} onClick={() => setTab(item.key)}
+              className={`ticket-tab-btn${tab === item.key ? ' active' : ''}`}>
+              {item.label}
+            </button>
           ))}
         </div>
 
         {loading ? (
-          <div className="loading-state">⏳ Đang tải...</div>
+          <div className="loading-state">⏳ {t('common.loading')}</div>
         ) : total === 0 ? (
-          <div className="empty-state">😔 Chưa có vé nào</div>
+          <div className="empty-state">😔 {t('tickets.noTickets')}</div>
         ) : (
           <div className="reg-grid">
-            {/* Đăng ký miễn phí */}
+            {/* Free registrations */}
             {visible.regs.map(r => {
               const rTickets = getTicketsFor('reg', r._id);
               return (
@@ -116,23 +115,23 @@ export default function MyTicketsPage() {
                       fontSize: '0.72rem', padding: '2px 10px', borderRadius: '20px',
                       background: 'rgba(76,175,80,0.15)', color: '#81c784',
                       border: '1px solid rgba(76,175,80,0.3)', fontWeight: 600
-                    }}>🆓 Miễn phí</span>
+                    }}>🆓 {t('events.free')}</span>
                     <span className={`reg-status-${r.status?.toLowerCase()}`}>{r.status}</span>
                   </div>
-                  <h4>{r.eventTitle || 'Sự kiện'}</h4>
+                  <h4>{r.eventTitle || t('nav.events')}</h4>
                   <p className="event-meta">📍 {r.eventLocation || '—'}</p>
-                  <p className="event-meta">📅 {r.eventStartDate ? new Date(r.eventStartDate).toLocaleDateString('vi-VN') : '—'}</p>
-                  <p className="event-meta" style={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.8rem' }}>
-                    Đăng ký: {r.registeredAt ? new Date(r.registeredAt).toLocaleDateString('vi-VN') : '—'}
+                  <p className="event-meta">📅 {r.eventStartDate ? new Date(r.eventStartDate).toLocaleDateString(locale) : '—'}</p>
+                  <p className="event-meta" style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>
+                    {t('tickets.registeredAt')}: {r.registeredAt ? new Date(r.registeredAt).toLocaleDateString(locale) : '—'}
                   </p>
 
                   {/* QR Ticket buttons */}
                   {rTickets.length > 0 && r.status === 'CONFIRMED' && (
                     <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap', marginTop: '0.5rem' }}>
-                      {rTickets.map(t => (
-                        <Link key={t._id} to={`/tickets/${t.ticketCode}`}
+                      {rTickets.map(tk => (
+                        <Link key={tk._id} to={`/tickets/${tk.ticketCode}`}
                           className="btn-sm btn-info" style={{ textDecoration: 'none', fontSize: '0.75rem' }}>
-                          📱 {t.ticketCode}
+                          📱 {tk.ticketCode}
                         </Link>
                       ))}
                     </div>
@@ -140,13 +139,13 @@ export default function MyTicketsPage() {
 
                   {r.status === 'CONFIRMED' && (
                     <button className="btn-sm btn-danger" style={{ marginTop: '0.75rem' }}
-                      onClick={() => handleCancelReg(r._id || r.id)}>Hủy đăng ký</button>
+                      onClick={() => handleCancelReg(r._id || r.id)}>{t('tickets.cancelReg')}</button>
                   )}
                 </div>
               );
             })}
 
-            {/* Vé có phí */}
+            {/* Paid bookings */}
             {visible.bookings.map(b => {
               const bTickets = getTicketsFor('booking', b._id);
               return (
@@ -156,26 +155,26 @@ export default function MyTicketsPage() {
                       fontSize: '0.72rem', padding: '2px 10px', borderRadius: '20px',
                       background: 'rgba(255,193,7,0.15)', color: '#ffc107',
                       border: '1px solid rgba(255,193,7,0.3)', fontWeight: 600
-                    }}>💳 Có phí</span>
+                    }}>💳 {t('events.paid')}</span>
                     <span className={`reg-status-${b.status?.toLowerCase()}`}>{b.status}</span>
                   </div>
-                  <h4>{b.eventTitle || 'Sự kiện'}</h4>
-                  <p className="event-meta">🪑 Khu: <strong style={{ color: '#a78bfa' }}>{b.zoneName}</strong></p>
-                  <p className="event-meta">🎟 Số lượng: <strong>{b.quantity} vé</strong></p>
-                  <p className="event-meta" style={{ color: '#a78bfa', fontWeight: 700 }}>
-                    💰 {(b.finalAmount || b.totalPrice)?.toLocaleString('vi-VN')}đ
+                  <h4>{b.eventTitle || t('nav.events')}</h4>
+                  <p className="event-meta">🪑 {t('tickets.zone')}: <strong style={{ color: 'var(--purple)' }}>{b.zoneName}</strong></p>
+                  <p className="event-meta">🎟 {t('tickets.quantity')}: <strong>{b.quantity} {t('tickets.title').toLowerCase()}</strong></p>
+                  <p className="event-meta" style={{ color: 'var(--purple)', fontWeight: 700 }}>
+                    💰 {(b.finalAmount || b.totalPrice)?.toLocaleString(locale)}đ
                   </p>
-                  <p className="event-meta" style={{ color: 'rgba(255,255,255,0.4)', fontSize: '0.8rem' }}>
-                    Đặt: {b.createdAt ? new Date(b.createdAt).toLocaleDateString('vi-VN') : '—'}
+                  <p className="event-meta" style={{ color: 'var(--text-muted)', fontSize: '0.8rem' }}>
+                    {t('tickets.bookedAt')}: {b.createdAt ? new Date(b.createdAt).toLocaleDateString(locale) : '—'}
                   </p>
 
                   {/* QR Ticket buttons */}
                   {bTickets.length > 0 && b.status === 'CONFIRMED' && (
                     <div style={{ display: 'flex', gap: '0.4rem', flexWrap: 'wrap', marginTop: '0.5rem' }}>
-                      {bTickets.map(t => (
-                        <Link key={t._id} to={`/tickets/${t.ticketCode}`}
+                      {bTickets.map(tk => (
+                        <Link key={tk._id} to={`/tickets/${tk.ticketCode}`}
                           className="btn-sm btn-info" style={{ textDecoration: 'none', fontSize: '0.75rem' }}>
-                          📱 {t.ticketCode}
+                          📱 {tk.ticketCode}
                         </Link>
                       ))}
                     </div>
@@ -183,7 +182,7 @@ export default function MyTicketsPage() {
 
                   {b.status === 'CONFIRMED' && (
                     <button className="btn-sm btn-danger" style={{ marginTop: '0.75rem' }}
-                      onClick={() => handleCancelBooking(b._id || b.id)}>Hủy & Hoàn tiền</button>
+                      onClick={() => handleCancelBooking(b._id || b.id)}>{t('tickets.cancelAndRefund')}</button>
                   )}
                 </div>
               );

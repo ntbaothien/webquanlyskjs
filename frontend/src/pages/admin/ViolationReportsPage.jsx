@@ -1,34 +1,28 @@
 import { useState, useEffect, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import axiosInstance from '../../utils/axiosInstance';
 import AdminLayout from '../../components/admin/AdminLayout';
 import './Admin.css';
 
-const REASON_LABELS = {
-  SPAM:          '🚫 Spam',
-  MISLEADING:    '⚠️ Sai lệch',
-  INAPPROPRIATE: '🔞 Không phù hợp',
-  FRAUD:         '💸 Lừa đảo',
-  DUPLICATE:     '📋 Trùng lặp',
-  OTHER:         '❓ Khác',
+const STATUS_COLORS = {
+  PENDING:   { color: '#fbbf24', bg: 'rgba(251,191,36,0.12)' },
+  REVIEWED:  { color: '#60a5fa', bg: 'rgba(96,165,250,0.12)' },
+  DISMISSED: { color: '#94a3b8', bg: 'rgba(148,163,184,0.12)' },
 };
 
-const STATUS_CONFIG = {
-  PENDING:   { label: 'Chờ xử lý',   color: '#fbbf24', bg: 'rgba(251,191,36,0.12)' },
-  REVIEWED:  { label: 'Đã xem xét',  color: '#60a5fa', bg: 'rgba(96,165,250,0.12)' },
-  DISMISSED: { label: 'Đã bỏ qua',   color: '#94a3b8', bg: 'rgba(148,163,184,0.12)' },
-};
-
-function StatusBadge({ status }) {
-  const c = STATUS_CONFIG[status] || STATUS_CONFIG.PENDING;
+function StatusBadge({ status, label }) {
+  const c = STATUS_COLORS[status] || STATUS_COLORS.PENDING;
   return (
     <span style={{ fontSize: '0.75rem', fontWeight: 600, padding: '0.2rem 0.55rem', borderRadius: '6px', color: c.color, background: c.bg, whiteSpace: 'nowrap' }}>
-      {c.label}
+      {label}
     </span>
   );
 }
 
 export default function ViolationReportsPage() {
+  const { t, i18n } = useTranslation();
+  const locale = i18n.language === 'vi' ? 'vi-VN' : 'en-US';
   const [data, setData]         = useState({ content: [], totalPages: 0, totalElements: 0, pendingCount: 0 });
   const [filters, setFilters]   = useState({ keyword: '', status: '', page: 0 });
   const [loading, setLoading]   = useState(true);
@@ -87,27 +81,43 @@ export default function ViolationReportsPage() {
     setSaving(true);
     try {
       await axiosInstance.put(`/admin/violations/${detail._id}`, { status: newStatus, adminNote });
-      showMsg('Cập nhật thành công');
+      showMsg(t('admin.updateSuccess'));
       setDetail(null);
       fetchReports();
     } catch (err) {
-      showMsg(err.response?.data?.error || 'Thao tác thất bại', 'error');
+      showMsg(err.response?.data?.error || t('admin.actionFailed'), 'error');
     } finally {
       setSaving(false);
     }
   };
 
+  const REASON_LABELS = {
+    SPAM:          `🚫 Spam`,
+    MISLEADING:    `⚠️ ${i18n.language === 'vi' ? 'Sai lệch' : 'Misleading'}`,
+    INAPPROPRIATE: `🔞 ${i18n.language === 'vi' ? 'Không phù hợp' : 'Inappropriate'}`,
+    FRAUD:         `💸 ${i18n.language === 'vi' ? 'Lừa đảo' : 'Fraud'}`,
+    DUPLICATE:     `📋 ${i18n.language === 'vi' ? 'Trùng lặp' : 'Duplicate'}`,
+    OTHER:         `❓ ${i18n.language === 'vi' ? 'Khác' : 'Other'}`,
+  };
+
+  const getStatusLabel = (s) => {
+    if (s === 'PENDING')   return t('admin.pendingReports');
+    if (s === 'REVIEWED')  return t('admin.reviewedReports');
+    if (s === 'DISMISSED') return t('admin.dismissedReports');
+    return s;
+  };
+
   const statusTabs = [
-    { value: '',          label: 'Tất cả',     count: data.totalElements },
-    { value: 'PENDING',   label: 'Chờ xử lý',  count: data.pendingCount },
-    { value: 'REVIEWED',  label: 'Đã xem xét', count: null },
-    { value: 'DISMISSED', label: 'Đã bỏ qua',  count: null },
+    { value: '',          label: t('admin.allReports'),      count: data.totalElements },
+    { value: 'PENDING',   label: t('admin.pendingReports'),  count: data.pendingCount },
+    { value: 'REVIEWED',  label: t('admin.reviewedReports'), count: null },
+    { value: 'DISMISSED', label: t('admin.dismissedReports'),count: null },
   ];
 
   return (
     <AdminLayout
-      title="🚨 Báo cáo vi phạm"
-      subtitle={`${data.totalElements} báo cáo · ${data.pendingCount} chờ xử lý`}
+      title={`🚨 ${t('admin.violationReports')}`}
+      subtitle={t('admin.violationSub')}
     >
       {msg.text && (
         <div className={`admin-msg ${msg.type}`}>
@@ -117,14 +127,14 @@ export default function ViolationReportsPage() {
 
       {/* ── Status tabs ── */}
       <div className="vr-tabs">
-        {statusTabs.map(t => (
-          <button key={t.value}
-            className={`vr-tab ${filters.status === t.value ? 'active' : ''}`}
-            onClick={() => handleStatus(t.value)}>
-            {t.label}
-            {t.count != null && (
-              <span className={`vr-tab-badge ${t.value === 'PENDING' && t.count > 0 ? 'urgent' : ''}`}>
-                {t.count}
+        {statusTabs.map(tab => (
+          <button key={tab.value}
+            className={`vr-tab ${filters.status === tab.value ? 'active' : ''}`}
+            onClick={() => handleStatus(tab.value)}>
+            {tab.label}
+            {tab.count != null && (
+              <span className={`vr-tab-badge ${tab.value === 'PENDING' && tab.count > 0 ? 'urgent' : ''}`}>
+                {tab.count}
               </span>
             )}
           </button>
@@ -141,7 +151,7 @@ export default function ViolationReportsPage() {
           <input
             className="admin-search-input"
             style={{ paddingLeft: '2.2rem', width: '100%', boxSizing: 'border-box' }}
-            placeholder="Tìm theo tên sự kiện, người báo cáo..."
+            placeholder={t('admin.searchReport')}
             value={filters.keyword}
             onChange={e => handleKeyword(e.target.value)}
           />
@@ -150,11 +160,11 @@ export default function ViolationReportsPage() {
 
       {/* ── Table ── */}
       {loading ? (
-        <div className="admin-loading">⏳ Đang tải...</div>
+        <div className="admin-loading">⏳ {t('common.loading')}</div>
       ) : data.content.length === 0 ? (
         <div className="admin-empty-state">
           <div style={{ fontSize: '2.5rem', marginBottom: '0.5rem' }}>📭</div>
-          <div>Không có báo cáo nào{filters.status ? ` (${STATUS_CONFIG[filters.status]?.label})` : ''}</div>
+          <div>{t('admin.noReports')}{filters.status ? ` (${getStatusLabel(filters.status)})` : ''}</div>
         </div>
       ) : (
         <div className="admin-table-card">
@@ -162,13 +172,13 @@ export default function ViolationReportsPage() {
             <thead>
               <tr>
                 <th>#</th>
-                <th>Sự kiện</th>
-                <th>Người báo cáo</th>
-                <th>Lý do</th>
-                <th>Mô tả</th>
-                <th>Trạng thái</th>
-                <th>Thời gian</th>
-                <th>Thao tác</th>
+                <th>{t('admin.reportedEvent')}</th>
+                <th>{t('admin.reporter')}</th>
+                <th>{t('admin.reason')}</th>
+                <th>{t('admin.description')}</th>
+                <th>{t('admin.status')}</th>
+                <th>{t('admin.reportTime')}</th>
+                <th>{t('admin.actions')}</th>
               </tr>
             </thead>
             <tbody>
@@ -182,23 +192,23 @@ export default function ViolationReportsPage() {
                     </Link>
                   </td>
                   <td>
-                    <div style={{ fontSize: '0.85rem', color: '#fff' }}>{r.reporterName}</div>
-                    <div style={{ fontSize: '0.75rem', color: 'rgba(255,255,255,0.4)' }}>{r.reporterEmail}</div>
+                    <div style={{ fontSize: '0.85rem', color: 'var(--admin-text)' }}>{r.reporterName}</div>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--admin-text-muted)' }}>{r.reporterEmail}</div>
                   </td>
                   <td>
                     <span className="vr-reason-badge">{REASON_LABELS[r.reason] || r.reason}</span>
                   </td>
                   <td style={{ maxWidth: 200 }}>
-                    <span style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.55)', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
-                      {r.description || <em style={{ opacity: 0.4 }}>Không có</em>}
+                    <span style={{ fontSize: '0.8rem', color: 'var(--admin-text-muted)', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                      {r.description || <em style={{ opacity: 0.4 }}>{i18n.language === 'vi' ? 'Không có' : 'None'}</em>}
                     </span>
                   </td>
-                  <td><StatusBadge status={r.status} /></td>
-                  <td style={{ fontSize: '0.78rem', color: 'rgba(255,255,255,0.45)', whiteSpace: 'nowrap' }}>
-                    {new Date(r.createdAt).toLocaleString('vi-VN')}
+                  <td><StatusBadge status={r.status} label={getStatusLabel(r.status)} /></td>
+                  <td style={{ fontSize: '0.78rem', color: 'var(--admin-text-muted)', whiteSpace: 'nowrap' }}>
+                    {new Date(r.createdAt).toLocaleString(locale)}
                   </td>
                   <td>
-                    <button className="admin-btn admin-btn-info" onClick={() => openDetail(r)} title="Xem & xử lý">
+                    <button className="admin-btn admin-btn-info" onClick={() => openDetail(r)} title={t('admin.viewAndProcess')}>
                       👁️
                     </button>
                   </td>
@@ -234,9 +244,9 @@ export default function ViolationReportsPage() {
           <div className="admin-modal" style={{ maxWidth: 560 }} onClick={e => e.stopPropagation()}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.5rem' }}>
               <div>
-                <h2 style={{ margin: '0 0 0.25rem', fontSize: '1.1rem' }}>🚨 Xem xét báo cáo</h2>
-                <p style={{ margin: 0, fontSize: '0.82rem', color: 'rgba(255,255,255,0.45)' }}>
-                  Báo cáo #{String(detail._id).slice(-6).toUpperCase()}
+                <h2 style={{ margin: '0 0 0.25rem', fontSize: '1.1rem' }}>🚨 {t('admin.reviewReport')}</h2>
+                <p style={{ margin: 0, fontSize: '0.82rem', color: 'var(--admin-text-muted)' }}>
+                  {i18n.language === 'vi' ? 'Báo cáo' : 'Report'} #{String(detail._id).slice(-6).toUpperCase()}
                 </p>
               </div>
               <button className="admin-modal-close" onClick={() => setDetail(null)}>✕</button>
@@ -244,7 +254,7 @@ export default function ViolationReportsPage() {
 
             {/* Event info */}
             <div className="vr-detail-section">
-              <div className="vr-detail-label">Sự kiện bị báo cáo</div>
+              <div className="vr-detail-label">{t('admin.reportedEventLabel')}</div>
               <Link to={`/events/${detail.eventId}`} target="_blank"
                 style={{ color: '#a78bfa', fontWeight: 700, textDecoration: 'none' }}>
                 {detail.eventTitle} ↗
@@ -253,39 +263,39 @@ export default function ViolationReportsPage() {
 
             {/* Reporter */}
             <div className="vr-detail-section">
-              <div className="vr-detail-label">Người báo cáo</div>
-              <div style={{ color: '#fff', fontWeight: 600 }}>{detail.reporterName}</div>
-              <div style={{ color: 'rgba(255,255,255,0.45)', fontSize: '0.82rem' }}>{detail.reporterEmail}</div>
+              <div className="vr-detail-label">{t('admin.reporterLabel')}</div>
+              <div style={{ color: 'var(--admin-text)', fontWeight: 600 }}>{detail.reporterName}</div>
+              <div style={{ color: 'var(--admin-text-muted)', fontSize: '0.82rem' }}>{detail.reporterEmail}</div>
             </div>
 
             {/* Reason + description */}
             <div className="vr-detail-section">
-              <div className="vr-detail-label">Lý do</div>
+              <div className="vr-detail-label">{t('admin.reasonLabel')}</div>
               <span className="vr-reason-badge">{REASON_LABELS[detail.reason] || detail.reason}</span>
             </div>
 
             {detail.description && (
               <div className="vr-detail-section">
-                <div className="vr-detail-label">Mô tả chi tiết</div>
-                <p style={{ margin: 0, color: 'rgba(255,255,255,0.75)', fontSize: '0.88rem', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>
+                <div className="vr-detail-label">{t('admin.descLabel')}</div>
+                <p style={{ margin: 0, color: 'var(--admin-text)', fontSize: '0.88rem', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>
                   {detail.description}
                 </p>
               </div>
             )}
 
             <div className="vr-detail-section">
-              <div className="vr-detail-label">Thời gian báo cáo</div>
-              <span style={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.85rem' }}>
-                {new Date(detail.createdAt).toLocaleString('vi-VN')}
+              <div className="vr-detail-label">{t('admin.reportTimeLabel')}</div>
+              <span style={{ color: 'var(--admin-text-muted)', fontSize: '0.85rem' }}>
+                {new Date(detail.createdAt).toLocaleString(locale)}
               </span>
             </div>
 
             {/* Admin note */}
             <div className="vr-detail-section">
-              <div className="vr-detail-label">Ghi chú xử lý (admin)</div>
+              <div className="vr-detail-label">{t('admin.adminNoteLabel')}</div>
               <textarea
                 className="vr-admin-note"
-                placeholder="Nhập ghi chú về cách xử lý báo cáo này..."
+                placeholder={t('admin.notePlaceholderVR')}
                 value={adminNote}
                 onChange={e => setAdminNote(e.target.value)}
                 rows={3}
@@ -297,19 +307,19 @@ export default function ViolationReportsPage() {
               {detail.status !== 'REVIEWED' && (
                 <button className="vr-action-btn reviewed" disabled={saving}
                   onClick={() => handleUpdate('REVIEWED')}>
-                  {saving ? '⏳' : '✅'} Đã xem xét
+                  {saving ? '⏳' : '✅'} {t('admin.markReviewed')}
                 </button>
               )}
               {detail.status !== 'DISMISSED' && (
                 <button className="vr-action-btn dismissed" disabled={saving}
                   onClick={() => handleUpdate('DISMISSED')}>
-                  {saving ? '⏳' : '🗑️'} Bỏ qua
+                  {saving ? '⏳' : '🗑️'} {t('admin.dismiss')}
                 </button>
               )}
               {detail.status !== 'PENDING' && (
                 <button className="vr-action-btn pending" disabled={saving}
                   onClick={() => handleUpdate('PENDING')}>
-                  🔄 Đánh dấu chờ xử lý
+                  🔄 {t('admin.markPending')}
                 </button>
               )}
             </div>

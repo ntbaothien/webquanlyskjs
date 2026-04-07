@@ -1,10 +1,12 @@
 import { Link, useNavigate } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import useAuthStore from '../../store/authStore';
 import './Auth.css';
 import { useState } from 'react';
 
 export default function LoginPage() {
   const { login, isLoading } = useAuthStore();
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [form, setForm] = useState({ email: '', password: '' });
   const [error, setError] = useState('');
@@ -22,7 +24,7 @@ export default function LoginPage() {
       if (data?.type === 'ACCOUNT_LOCKED') {
         setIsLocked(true);
       }
-      setError(data?.error || 'Đăng nhập thất bại');
+      setError(data?.error || t('auth.loginFailed'));
     }
   };
 
@@ -30,7 +32,7 @@ export default function LoginPage() {
     <div className="auth-bg">
       <div className="auth-card">
         <div className="auth-logo">🎪 EventHub</div>
-        <h2>Đăng nhập</h2>
+        <h2>{t('auth.login')}</h2>
         {error && (
           <div className={`auth-error ${isLocked ? 'auth-locked' : ''}`}>
             {isLocked && <div style={{ fontSize: '1.5rem', marginBottom: '0.5rem' }}>🔒</div>}
@@ -47,25 +49,25 @@ export default function LoginPage() {
         )}
         <form onSubmit={handleSubmit}>
           <div className="form-group">
-            <label>Email</label>
+            <label>{t('auth.email')}</label>
             <input type="email" placeholder="you@example.com" value={form.email}
               onChange={e => setForm({ ...form, email: e.target.value })} required />
           </div>
           <div className="form-group">
-            <label>Mật khẩu</label>
+            <label>{t('auth.password')}</label>
             <input type="password" placeholder="••••••••" value={form.password}
               onChange={e => setForm({ ...form, password: e.target.value })} required />
           </div>
           <div style={{ textAlign: 'right', marginBottom: '16px' }}>
             <Link to="/forgot-password" style={{ color: '#a78bfa', fontSize: '13px', textDecoration: 'none' }}>
-              Quên mật khẩu?
+              {t('auth.forgotPassword')}
             </Link>
           </div>
           <button className="btn-primary" type="submit" disabled={isLoading}>
-            {isLoading ? 'Đang đăng nhập...' : 'Đăng nhập'}
+            {isLoading ? t('auth.loggingIn') : t('auth.loginBtn')}
           </button>
         </form>
-        <p className="auth-footer">Chưa có tài khoản? <Link to="/register">Đăng ký ngay</Link></p>
+        <p className="auth-footer">{t('auth.noAccount')} <Link to="/register">{t('auth.registerBtn')}</Link></p>
       </div>
     </div>
   );

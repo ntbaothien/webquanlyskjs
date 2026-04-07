@@ -38,7 +38,7 @@ export default function Navbar() {
           <button
             className="btn-lang"
             onClick={toggleLang}
-            title="Switch language"
+            title={t('common.switchLang')}
           >
             <span className="lang-flag">{i18n.language === 'vi' ? '🇻🇳' : '🇺🇸'}</span>
             {i18n.language === 'vi' ? 'VI' : 'EN'}

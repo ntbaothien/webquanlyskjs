@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { QRCodeSVG } from 'qrcode.react';
+import { useTranslation } from 'react-i18next';
 import axiosInstance from '../../utils/axiosInstance';
 import useAuthStore from '../../store/authStore';
 import Navbar from '../../components/common/Navbar';
@@ -17,29 +18,33 @@ const BANK_INFO = {
 const PRESET_AMOUNTS = [50000, 100000, 200000, 500000, 1000000, 2000000];
 
 // ── Status config ────────────────────────────────────────────────────────────
-const TX_STATUS = {
-  PENDING:   { label: 'Chờ xác nhận', color: '#fbbf24', bg: 'rgba(251,191,36,0.12)', icon: '⏳' },
-  COMPLETED: { label: 'Thành công',    color: '#4ade80', bg: 'rgba(74,222,128,0.12)',  icon: '✅' },
-  REJECTED:  { label: 'Từ chối',       color: '#f87171', bg: 'rgba(248,113,113,0.12)', icon: '❌' },
+const TX_STATUS_CONFIG = {
+  PENDING:   { color: '#fbbf24', bg: 'rgba(251,191,36,0.12)', icon: '⏳' },
+  COMPLETED: { color: '#4ade80', bg: 'rgba(74,222,128,0.12)',  icon: '✅' },
+  REJECTED:  { color: '#f87171', bg: 'rgba(248,113,113,0.12)', icon: '❌' },
 };
 
-const TX_TYPE = {
-  TOPUP:  { label: 'Nạp tiền',  color: '#4ade80',  sign: '+' },
-  SPEND:  { label: 'Thanh toán', color: '#f87171',  sign: '-' },
-  REFUND: { label: 'Hoàn tiền',  color: '#60a5fa',  sign: '+' },
+const TX_TYPE_CONFIG = {
+  TOPUP:  { color: '#4ade80',  sign: '+' },
+  SPEND:  { color: '#f87171',  sign: '-' },
+  REFUND: { color: '#60a5fa',  sign: '+' },
 };
 
 function StatusChip({ status }) {
-  const s = TX_STATUS[status] || TX_STATUS.PENDING;
+  const { t } = useTranslation();
+  const s = TX_STATUS_CONFIG[status] || TX_STATUS_CONFIG.PENDING;
+  const labelKey = status === 'PENDING' ? 'wallet.statusPending' : status === 'COMPLETED' ? 'wallet.statusCompleted' : 'wallet.statusRejected';
   return (
     <span style={{ fontSize: '0.75rem', fontWeight: 600, padding: '0.18rem 0.55rem', borderRadius: '6px', color: s.color, background: s.bg }}>
-      {s.icon} {s.label}
+      {s.icon} {t(labelKey)}
     </span>
   );
 }
 
 // ── Payment instruction modal ────────────────────────────────────────────────
 function PaymentModal({ transaction, onClose, onConfirm }) {
+  const { t, i18n } = useTranslation();
+  const locale = i18n.language === 'vi' ? 'vi-VN' : 'en-US';
   const qrData = `${BANK_INFO.bankName}|${BANK_INFO.accountNo}|${transaction.amount}|${transaction.transferCode}`;
 
   return (
@@ -47,53 +52,51 @@ function PaymentModal({ transaction, onClose, onConfirm }) {
       <div className="wallet-modal" onClick={e => e.stopPropagation()}>
         <div className="wallet-modal-header">
           <div>
-            <h3>💳 Hướng dẫn chuyển khoản</h3>
+            <h3>{t('wallet.transferTitle')}</h3>
             <p>Mã giao dịch: <strong style={{ color: '#a78bfa' }}>{transaction.transferCode}</strong></p>
           </div>
           <button className="wallet-close-btn" onClick={onClose}>✕</button>
         </div>
 
         <div className="wallet-payment-grid">
-          {/* QR Code */}
           <div className="wallet-qr-box">
             <div style={{ background: '#fff', padding: '12px', borderRadius: '12px', display: 'inline-block' }}>
               <QRCodeSVG value={qrData} size={160} level="M" />
             </div>
-            <p style={{ fontSize: '0.78rem', color: 'rgba(255,255,255,0.45)', marginTop: '0.5rem' }}>Quét QR để chuyển khoản</p>
+            <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '0.5rem' }}>{t('wallet.scanQR')}</p>
           </div>
 
-          {/* Bank info */}
           <div className="wallet-bank-info">
             <div className="wallet-bank-row">
-              <span className="wallet-bank-label">Ngân hàng</span>
+              <span className="wallet-bank-label">{t('wallet.bank')}</span>
               <strong>{BANK_INFO.bankName}</strong>
             </div>
             <div className="wallet-bank-row">
-              <span className="wallet-bank-label">Số tài khoản</span>
+              <span className="wallet-bank-label">{t('wallet.accountNo')}</span>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                 <strong style={{ fontSize: '1.1rem', letterSpacing: '1px' }}>{BANK_INFO.accountNo}</strong>
                 <button className="wallet-copy-btn"
-                  onClick={() => { navigator.clipboard.writeText(BANK_INFO.accountNo); toast('Đã copy số tài khoản!', 'success'); }}>
+                  onClick={() => { navigator.clipboard.writeText(BANK_INFO.accountNo); toast(t('wallet.typeCopied'), 'success'); }}>
                   📋
                 </button>
               </div>
             </div>
             <div className="wallet-bank-row">
-              <span className="wallet-bank-label">Chủ tài khoản</span>
+              <span className="wallet-bank-label">{t('wallet.accountName')}</span>
               <strong>{BANK_INFO.accountName}</strong>
             </div>
             <div className="wallet-bank-row">
-              <span className="wallet-bank-label">Số tiền</span>
+              <span className="wallet-bank-label">{t('wallet.amount')}</span>
               <strong style={{ color: '#fbbf24', fontSize: '1.2rem' }}>
-                {transaction.amount.toLocaleString('vi-VN')}đ
+                {transaction.amount.toLocaleString(locale)}đ
               </strong>
             </div>
             <div className="wallet-bank-row">
-              <span className="wallet-bank-label">Nội dung CK</span>
+              <span className="wallet-bank-label">{t('wallet.transferContent')}</span>
               <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                 <strong style={{ color: '#a78bfa' }}>{transaction.transferCode}</strong>
                 <button className="wallet-copy-btn"
-                  onClick={() => { navigator.clipboard.writeText(transaction.transferCode); toast('Đã copy nội dung!', 'success'); }}>
+                  onClick={() => { navigator.clipboard.writeText(transaction.transferCode); toast(t('wallet.contentCopied'), 'success'); }}>
                   📋
                 </button>
               </div>
@@ -101,17 +104,14 @@ function PaymentModal({ transaction, onClose, onConfirm }) {
           </div>
         </div>
 
-        <div className="wallet-payment-note">
-          ⚠️ Vui lòng nhập đúng <strong>nội dung chuyển khoản</strong> để hệ thống xác nhận tự động.
-          Số dư sẽ được cộng sau khi admin xác nhận (thường trong vòng 5–15 phút).
-        </div>
+        <div className="wallet-payment-note" dangerouslySetInnerHTML={{ __html: t('wallet.transferNote') }} />
 
         <div style={{ display: 'flex', gap: '0.75rem', marginTop: '1.25rem' }}>
           <button className="wallet-btn-secondary" onClick={onClose} style={{ flex: 1 }}>
-            Đóng
+            {t('wallet.close')}
           </button>
           <button className="wallet-btn-primary" onClick={onConfirm} style={{ flex: 2 }}>
-            ✅ Tôi đã chuyển khoản xong
+            {t('wallet.confirmed')}
           </button>
         </div>
       </div>
@@ -122,6 +122,8 @@ function PaymentModal({ transaction, onClose, onConfirm }) {
 // ── Main Wallet Page ─────────────────────────────────────────────────────────
 export default function WalletPage() {
   const { user, updateUser } = useAuthStore();
+  const { t, i18n } = useTranslation();
+  const locale = i18n.language === 'vi' ? 'vi-VN' : 'en-US';
 
   const [balance, setBalance]           = useState(user?.balance || 0);
   const [transactions, setTransactions] = useState([]);
@@ -162,7 +164,7 @@ export default function WalletPage() {
 
   const handleTopup = async () => {
     const amt = Number(amount);
-    if (!amt || amt < 10000) { toast('Số tiền tối thiểu 10,000đ', 'error'); return; }
+    if (!amt || amt < 10000) { toast(t('wallet.minAmount'), 'error'); return; }
     setSubmitting(true);
     try {
       const { data } = await axiosInstance.post('/users/me/topup', { amount: amt });
@@ -170,7 +172,7 @@ export default function WalletPage() {
       setShowPayModal(true);
       setAmount('');
     } catch (err) {
-      toast(err.response?.data?.error || 'Tạo yêu cầu thất bại', 'error');
+      toast(err.response?.data?.error || t('wallet.topupFailed'), 'error');
     } finally {
       setSubmitting(false);
     }
@@ -179,7 +181,7 @@ export default function WalletPage() {
   const handlePaymentConfirmed = () => {
     setShowPayModal(false);
     setPendingTx(null);
-    toast('Yêu cầu đã ghi nhận! Admin sẽ xác nhận sớm nhất.', 'success');
+    toast(t('wallet.requestRecorded'), 'success');
     loadTransactions(0, txFilter);
   };
 
@@ -207,9 +209,9 @@ export default function WalletPage() {
 
             {/* Balance card */}
             <div className="wallet-balance-card">
-              <div className="wallet-balance-label">Số dư ví</div>
+              <div className="wallet-balance-label">{t('wallet.balance')}</div>
               <div className="wallet-balance-amount">
-                {balance.toLocaleString('vi-VN')}
+                {balance.toLocaleString(locale)}
                 <span className="wallet-currency">đ</span>
               </div>
               <div className="wallet-balance-sub">
@@ -217,14 +219,14 @@ export default function WalletPage() {
               </div>
               {pendingTopups > 0 && (
                 <div className="wallet-pending-note">
-                  ⏳ {pendingTopups} yêu cầu nạp đang chờ xác nhận
+                  {t('wallet.pendingTopups', { count: pendingTopups })}
                 </div>
               )}
             </div>
 
             {/* Top-up form */}
             <div className="wallet-topup-card">
-              <h3 className="wallet-section-title">💳 Nạp tiền vào ví</h3>
+              <h3 className="wallet-section-title">{t('wallet.topupTitle')}</h3>
 
               {/* Preset amounts */}
               <div className="wallet-preset-grid">
@@ -242,7 +244,7 @@ export default function WalletPage() {
               {/* Custom amount */}
               <button className={`wallet-custom-toggle ${customMode ? 'active' : ''}`}
                 onClick={() => { setCustomMode(v => !v); if (!customMode) setAmount(''); }}>
-                {customMode ? '✕ Bỏ nhập thủ công' : '✏️ Nhập số tiền khác'}
+                {customMode ? t('wallet.customToggleOff') : t('wallet.customToggle')}
               </button>
 
               {customMode && (
@@ -251,7 +253,7 @@ export default function WalletPage() {
                     type="number"
                     min="10000"
                     step="10000"
-                    placeholder="Nhập số tiền (tối thiểu 10,000đ)"
+                    placeholder={t('wallet.customPlaceholder')}
                     value={amount}
                     onChange={e => setAmount(e.target.value)}
                     className="wallet-custom-input"
@@ -268,13 +270,13 @@ export default function WalletPage() {
                 className="wallet-topup-btn"
                 onClick={handleTopup}
                 disabled={!amount || Number(amount) < 10000 || submitting}>
-                {submitting ? '⏳ Đang xử lý...' : `💳 Nạp ${amount ? Number(amount).toLocaleString('vi-VN') + 'đ' : 'tiền'}`}
+                {submitting ? t('wallet.topupProcessing') : `${t('wallet.topupBtn')}${amount && Number(amount) >= 10000 ? ` ${Number(amount).toLocaleString(locale)}đ` : ''}`}
               </button>
 
               <div className="wallet-info-list">
-                <div>✅ Hỗ trợ chuyển khoản ngân hàng</div>
-                <div>⚡ Xác nhận trong 5–15 phút</div>
-                <div>🔒 Giao dịch bảo mật</div>
+                <div>✅ {i18n.language === 'vi' ? 'Hỗ trợ chuyển khoản ngân hàng' : 'Supports bank transfer'}</div>
+                <div>⚡ {i18n.language === 'vi' ? 'Xác nhận trong 5–15 phút' : 'Confirmed within 5–15 minutes'}</div>
+                <div>🔒 {i18n.language === 'vi' ? 'Giao dịch bảo mật' : 'Secure transaction'}</div>
               </div>
             </div>
           </div>
@@ -283,11 +285,11 @@ export default function WalletPage() {
           <div className="wallet-history-card">
             <div className="wallet-history-header">
               <div>
-                <h3 className="wallet-section-title" style={{ margin: 0 }}>📋 Lịch sử giao dịch</h3>
-                {!loading && <span style={{ fontSize: '0.8rem', color: 'rgba(255,255,255,0.4)' }}>{totalElements} giao dịch</span>}
+                <h3 className="wallet-section-title" style={{ margin: 0 }}>{t('wallet.historyTitle')}</h3>
+                {!loading && <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{totalElements} {t('wallet.transactions')}</span>}
               </div>
               <div className="wallet-filter-tabs">
-                {[['', 'Tất cả'], ['TOPUP', 'Nạp tiền'], ['SPEND', 'Thanh toán'], ['REFUND', 'Hoàn tiền']].map(([v, l]) => (
+                {[['', t('wallet.filterAll')], ['TOPUP', t('wallet.filterTopup')], ['SPEND', t('wallet.filterSpend')], ['REFUND', t('wallet.filterRefund')]].map(([v, l]) => (
                   <button key={v} className={`wallet-filter-tab ${txFilter === v ? 'active' : ''}`}
                     onClick={() => handleFilterChange(v)}>
                     {l}
@@ -303,12 +305,13 @@ export default function WalletPage() {
             ) : transactions.length === 0 ? (
               <div className="wallet-empty">
                 <span>💸</span>
-                <p>Chưa có giao dịch nào{txFilter ? ` (${txFilter === 'TOPUP' ? 'Nạp tiền' : txFilter === 'SPEND' ? 'Thanh toán' : 'Hoàn tiền'})` : ''}</p>
+                <p>{t('wallet.noTransactions')}{txFilter ? ` (${txFilter === 'TOPUP' ? t('wallet.filterTopup') : txFilter === 'SPEND' ? t('wallet.filterSpend') : t('wallet.filterRefund')})` : ''}</p>
               </div>
             ) : (
               <div className="wallet-tx-list">
                 {transactions.map(tx => {
-                  const typeInfo = TX_TYPE[tx.type] || TX_TYPE.TOPUP;
+                  const typeInfo = TX_TYPE_CONFIG[tx.type] || TX_TYPE_CONFIG.TOPUP;
+                  const typeLabel = tx.type === 'TOPUP' ? t('wallet.filterTopup') : tx.type === 'SPEND' ? t('wallet.filterSpend') : t('wallet.filterRefund');
                   return (
                     <div key={tx._id} className="wallet-tx-item">
                       <div className={`wallet-tx-icon ${tx.type.toLowerCase()}`}>
@@ -316,13 +319,13 @@ export default function WalletPage() {
                       </div>
                       <div className="wallet-tx-info">
                         <div className="wallet-tx-title">
-                          {typeInfo.label}
+                          {typeLabel}
                           {tx.transferCode && (
                             <span className="wallet-tx-code">{tx.transferCode}</span>
                           )}
                         </div>
                         <div className="wallet-tx-date">
-                          {new Date(tx.createdAt).toLocaleString('vi-VN')}
+                          {new Date(tx.createdAt).toLocaleString(locale)}
                           {tx.note && <span> · {tx.note}</span>}
                         </div>
                         {tx.status === 'REJECTED' && tx.adminNote && (
@@ -331,7 +334,7 @@ export default function WalletPage() {
                       </div>
                       <div className="wallet-tx-right">
                         <div className="wallet-tx-amount" style={{ color: typeInfo.color }}>
-                          {typeInfo.sign}{tx.amount.toLocaleString('vi-VN')}đ
+                          {typeInfo.sign}{tx.amount.toLocaleString(locale)}đ
                         </div>
                         <StatusChip status={tx.status} />
                       </div>
@@ -361,9 +364,8 @@ export default function WalletPage() {
 
           {/* Note about usage */}
           <div className="wallet-usage-note">
-            <strong>💡 Cách sử dụng số dư:</strong> Số dư ví được dùng để thanh toán vé tại trang chi tiết sự kiện.
-            Bạn không thể rút tiền về tài khoản ngân hàng — vui lòng nạp đúng số tiền cần dùng.
-            <Link to="/" style={{ color: '#a78bfa', marginLeft: '0.5rem' }}>Xem sự kiện →</Link>
+            <span dangerouslySetInnerHTML={{ __html: t('wallet.usageNote') }} />
+            <Link to="/" style={{ color: 'var(--purple)', marginLeft: '0.5rem' }}>{t('wallet.viewEvents')}</Link>
           </div>
         </div>
       </div>
