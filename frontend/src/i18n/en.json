@@ -32,10 +32,6 @@
     "title": "Discover Events",
     "subtitle": "Find and join amazing events",
     "search": "Search events...",
-    "allTime": "All",
-    "today": "Today",
-    "weekend": "This Weekend",
-    "thisMonth": "This Month",
     "allLocations": "All locations",
     "allEvents": "All Events",
     "eventsCount": "events",
@@ -65,7 +61,30 @@
     "seatMap": "Seat Map",
     "remaining": "Remaining",
     "soldOut": "Sold Out",
-    "loginToBook": "Login to book tickets"
+    "loginToBook": "Login to book tickets",
+    "searchPlaceholder": "Search events, organizers, tags...",
+    "advancedFilters": "Advanced Filters",
+    "allTime": "All Time",
+    "today": "Today",
+    "weekend": "Weekend",
+    "thisMonth": "This Month",
+    "sort": {
+      "date_asc": "📅 Nearest Date",
+      "date_desc": "📅 Farthest Date",
+      "popular": "🔥 Most Popular",
+      "newest": "✨ Newest First"
+    },
+    "filters": {
+      "type": "Ticket Type",
+      "status": "Status",
+      "priceMax": "Max Price",
+      "organizer": "Organizer",
+      "from": "From Date",
+      "to": "To Date",
+      "reset": "Reset Advanced Filters",
+      "active": "Filters:",
+      "clearAll": "Clear All"
+    }
   },
   "tickets": {
     "title": "My Tickets",

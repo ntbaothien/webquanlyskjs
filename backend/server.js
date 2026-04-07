@@ -57,8 +57,9 @@ app.use(morgan('dev'));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Static files — uploads
+// Static files
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
+app.use(express.static(path.join(__dirname, '../frontend/dist')));
 
 // API Routes
 app.use('/api/auth', authRoutes);
@@ -133,6 +134,11 @@ io.on('connection', (socket) => {
   socket.on('disconnect', () => {
     console.log('❌ Client disconnected:', socket.id);
   });
+});
+
+// SPA Catch-all
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, '../frontend/dist/index.html'));
 });
 
 // Global error handler

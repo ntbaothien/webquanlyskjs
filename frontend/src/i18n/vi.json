@@ -32,10 +32,6 @@
     "title": "Khám phá Sự kiện",
     "subtitle": "Tìm kiếm và tham gia sự kiện hấp dẫn",
     "search": "Tìm kiếm sự kiện...",
-    "allTime": "Tất cả",
-    "today": "Hôm nay",
-    "weekend": "Cuối tuần",
-    "thisMonth": "Tháng này",
     "allLocations": "Tất cả địa điểm",
     "allEvents": "Tất cả sự kiện",
     "eventsCount": "sự kiện",
@@ -65,7 +61,30 @@
     "seatMap": "Sơ đồ chỗ ngồi",
     "remaining": "Còn lại",
     "soldOut": "Hết chỗ",
-    "loginToBook": "Đăng nhập để đặt vé"
+    "loginToBook": "Đăng nhập để đặt vé",
+    "searchPlaceholder": "Tìm kiếm sự kiện, ban tổ chức, tags...",
+    "advancedFilters": "Lọc nâng cao",
+    "allTime": "Thời gian",
+    "today": "Hôm nay",
+    "weekend": "Cuối tuần",
+    "thisMonth": "Tháng này",
+    "sort": {
+      "date_asc": "📅 Ngày gần nhất",
+      "date_desc": "📅 Ngày xa nhất",
+      "popular": "🔥 Phổ biến nhất",
+      "newest": "✨ Mới đăng nhất"
+    },
+    "filters": {
+      "type": "Loại vé",
+      "status": "Trạng thái",
+      "priceMax": "Giá tối đa",
+      "organizer": "Ban tổ chức",
+      "from": "Từ ngày",
+      "to": "Đến ngày",
+      "reset": "Đặt lại bộ lọc nâng cao",
+      "active": "Bộ lọc:",
+      "clearAll": "Xóa tất cả"
+    }
   },
   "tickets": {
     "title": "Vé của tôi",
