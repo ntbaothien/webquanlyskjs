@@ -192,7 +192,12 @@ export default function OrganizerRegistrationsPage() {
               </span>
             </div>
           </div>
-          <Link to={`/organizer/events/${id}/edit`} className="reg-edit-btn">✏️ Chỉnh sửa sự kiện</Link>
+          <div style={{ display: 'flex', gap: '0.75rem' }}>
+            <Link to={`/events/${id}?tab=polls`} className="reg-poll-btn" style={{ background: 'rgba(167,139,250,0.15)', color: '#a78bfa', padding: '0.6rem 1rem', borderRadius: '10px', textDecoration: 'none', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '0.5rem', border: '1px solid rgba(167,139,250,0.3)' }}>
+              📊 Bình chọn
+            </Link>
+            <Link to={`/organizer/events/${id}/edit`} className="reg-edit-btn">✏️ Chỉnh sửa sự kiện</Link>
+          </div>
         </div>
 
         {/* ── Stats ── */}

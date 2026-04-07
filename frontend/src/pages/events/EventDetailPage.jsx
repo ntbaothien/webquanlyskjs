@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useParams, useNavigate, Link, useLocation } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import axiosInstance from '../../utils/axiosInstance';
 import { getImageUrl } from '../../utils/getImageUrl';
@@ -91,6 +91,7 @@ export default function EventDetailPage() {
   const [rating, setRating] = useState(5);
   const [comment, setComment] = useState('');
   const [reviewMsg, setReviewMsg] = useState({ text: '', type: '' });
+  const { search } = useLocation();
   const [activeTab, setActiveTab] = useState('info');
 
   // Similar events
@@ -142,7 +143,12 @@ export default function EventDetailPage() {
     fetchReviews();
     fetchSimilar();
     fetchWaitlistStatus();
-  }, [id, navigate, user]);
+
+    // Check for tab param
+    const qTab = new URLSearchParams(search).get('tab');
+    if (qTab) setActiveTab(qTab);
+
+  }, [id, navigate, user, search]);
 
   const handleRegister = async () => {
     if (!user) { navigate('/login'); return; }
@@ -250,6 +256,17 @@ export default function EventDetailPage() {
                 </p>
                 <p className="event-meta">⏰ {new Date(event.startDate).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' })}</p>
                 <p className="event-meta">👤 {t('eventDetail.organizedBy')}: <strong>{event.organizerName}</strong></p>
+
+                {user && (user._id === event.organizerId || user.role === 'ADMIN') && (
+                  <div style={{ marginTop: '1rem', display: 'flex', gap: '0.75rem', flexWrap: 'wrap' }}>
+                    <button onClick={() => setActiveTab('polls')} className="btn-secondary" style={{ background: 'rgba(167,139,250,0.1)', color: '#a78bfa', borderColor: 'rgba(167,139,250,0.3)', padding: '0.5rem 1rem', borderRadius: '8px', cursor: 'pointer', fontWeight: 600 }}>
+                      📊 Quản lý Bình chọn
+                    </button>
+                    <button onClick={() => navigate(`/organizer/events/${id}/registrations`)} className="btn-secondary" style={{ padding: '0.5rem 1rem', borderRadius: '8px', cursor: 'pointer', fontWeight: 600 }}>
+                      👥 Quản lý Đăng ký
+                    </button>
+                  </div>
+                )}
 
                 {countdown && !eventPast && (
                   <div className="countdown-container">

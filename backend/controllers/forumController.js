@@ -11,6 +11,9 @@ export const getForumPosts = async (req, res) => {
 
 export const createPost = async (req, res) => {
   try {
+    console.log('--- CREATE FORUM POST ---');
+    console.log('req.body:', req.body);
+    console.log('req.user:', req.user?._id, req.user?.fullName);
     const post = await ForumPost.create({
       ...req.body,
       userId: req.user._id,
@@ -18,6 +21,7 @@ export const createPost = async (req, res) => {
     });
     res.status(201).json(post);
   } catch (error) {
+    console.error('Create Post Error:', error);
     res.status(400).json({ error: error.message });
   }
 };

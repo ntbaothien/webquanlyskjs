@@ -15,11 +15,16 @@ Tính năng này cho phép người tham gia thảo luận và đặt câu hỏi
 ## 2. Bình chọn Sự kiện (Event Polls)
 Cho phép người tổ chức thu thập ý kiến từ người tham gia thông qua các cuộc bình chọn.
 - **Người tham gia**: 
-    - Truy cập tab **Bình chọn** trong trang chi tiết sự kiện.
+    - Truy cập tab **Bình chọn** trong trang **Chi tiết sự kiện**.
     - Chọn phương án bạn muốn và nhấn **Bình chọn**. Kết quả sẽ được cập nhật dưới dạng biểu đồ thời gian thực.
-- **Người tổ chức**:
-    - Có thể tạo cuộc bình chọn mới với nhiều tùy chọn.
-    - Quản lý đóng/mở bình chọn để chốt kết quả.
+- **Người tổ chức (Organizer/Admin)**:
+    - **Cách tạo**:
+        1. Truy cập trang **Chi tiết sự kiện** của chính sự kiện bạn đã tạo.
+        2. Chuyển sang tab **Bình chọn**.
+        3. Bạn sẽ thấy biểu mẫu **"Tạo bình chọn mới"** ở phía trên cùng.
+        4. Nhập câu hỏi và các lựa chọn (tối thiểu 2, tối đa 5).
+        5. Nhấn **"Tạo bình chọn"** để công bố.
+    - **Quản lý**: Có thể đóng (Close) bình chọn để ngừng nhận phản hồi hoặc xóa bình chọn nếu cần thiết.
 
 ## 3. Quản lý Tài nguyên (Resource Management)
 Dành cho Quản trị viên và Người tổ chức để theo dõi thiết bị và cơ sở vật chất.

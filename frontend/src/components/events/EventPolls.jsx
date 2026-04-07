@@ -9,7 +9,7 @@ export default function EventPolls({ eventId, isOrganizer }) {
 
   const fetchPolls = async () => {
     try {
-      const { data } = await axiosInstance.get(`/api/polls/event/${eventId}`);
+      const { data } = await axiosInstance.get(`/polls/event/${eventId}`);
       setPolls(data);
     } catch (err) { console.error(err); }
   };
@@ -19,14 +19,14 @@ export default function EventPolls({ eventId, isOrganizer }) {
   const handleVote = async (pollId, idx) => {
     if (!user) return alert('Đăng nhập để bình chọn');
     try {
-      await axiosInstance.put(`/api/polls/${pollId}/vote`, { optionIndex: idx });
+      await axiosInstance.put(`/polls/${pollId}/vote`, { optionIndex: idx });
       fetchPolls();
     } catch (err) { alert(err.response?.data?.error || 'Lỗi'); }
   };
 
   const handleClose = async (id) => {
     try {
-      await axiosInstance.put(`/api/polls/${id}/close`);
+      await axiosInstance.put(`/polls/${id}/close`);
       fetchPolls();
     } catch (err) { console.error(err); }
   };
@@ -34,7 +34,7 @@ export default function EventPolls({ eventId, isOrganizer }) {
   const handleDelete = async (id) => {
     if (!window.confirm('Xóa?')) return;
     try {
-      await axiosInstance.delete(`/api/polls/${id}`);
+      await axiosInstance.delete(`/polls/${id}`);
       fetchPolls();
     } catch (err) { console.error(err); }
   };

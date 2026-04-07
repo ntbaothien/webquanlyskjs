@@ -10,7 +10,7 @@ export default function EventForum({ eventId }) {
 
   const fetchPosts = async () => {
     try {
-      const { data } = await axiosInstance.get(`/api/forum/${eventId}`);
+      const { data } = await axiosInstance.get(`/forum/${eventId}`);
       setPosts(data);
     } catch (err) { console.error(err); }
   };
@@ -22,17 +22,17 @@ export default function EventForum({ eventId }) {
     if (!content.trim()) return;
     setLoading(true);
     try {
-      await axiosInstance.post('/api/forum', { eventId, content });
+      await axiosInstance.post('/forum', { eventId, content });
       setContent('');
       fetchPosts();
-    } catch (err) { alert('Hệ thống đang bận'); }
+    } catch (err) { alert(err.response?.data?.error || 'Hệ thống đang bận'); }
     finally { setLoading(false); }
   };
 
   const handleComment = async (postId, c) => {
     if (!c.trim()) return;
     try {
-      await axiosInstance.post(`/api/forum/${postId}/comment`, { content: c });
+      await axiosInstance.post(`/forum/${postId}/comment`, { content: c });
       fetchPosts();
     } catch (err) { console.error(err); }
   };
@@ -40,7 +40,7 @@ export default function EventForum({ eventId }) {
   const handleDelete = async (id) => {
     if (!window.confirm('Xóa bài đăng này?')) return;
     try {
-      await axiosInstance.delete(`/api/forum/${id}`);
+      await axiosInstance.delete(`/forum/${id}`);
       fetchPosts();
     } catch (err) { console.error(err); }
   };

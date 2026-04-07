@@ -10,11 +10,11 @@ export default function CreatePollForm({ eventId, onCreated }) {
     const opts = options.filter(o => o.trim());
     if (opts.length < 2) return alert('Ít nhất 2 lựa chọn');
     try {
-      await axiosInstance.post('/api/polls', { eventId, question, options: opts });
+      await axiosInstance.post('/polls', { eventId, question, options: opts });
       setQuestion('');
       setOptions(['', '']);
       onCreated();
-    } catch (err) { alert('Hệ thống bận'); }
+    } catch (err) { alert(err.response?.data?.error || 'Hệ thống bận'); }
   };
 
   return (
