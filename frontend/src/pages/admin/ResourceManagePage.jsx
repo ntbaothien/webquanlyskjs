@@ -14,7 +14,7 @@ export default function ResourceManagePage() {
 
   const fetchResources = async () => {
     try {
-      const { data } = await axiosInstance.get(`/api/resources/${eventId}`);
+      const { data } = await axiosInstance.get(`/resources/${eventId}`);
       setResources(data);
     } catch (err) { console.error(err); }
     finally { setLoading(false); }
@@ -25,16 +25,16 @@ export default function ResourceManagePage() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      await axiosInstance.post('/api/resources', { ...formData, eventId });
+      await axiosInstance.post('/resources', { ...formData, eventId });
       setFormData({ name: '', type: 'Equipment', quantity: 1, notes: '' });
       fetchResources();
-    } catch (err) { alert('Lỗi'); }
+    } catch (err) { alert(err.response?.data?.error || err.message || 'Lỗi'); }
   };
 
   const handleDelete = async (id) => {
     if (!window.confirm('Xóa tài nguyên này?')) return;
     try {
-      await axiosInstance.delete(`/api/resources/${id}`);
+      await axiosInstance.delete(`/resources/${id}`);
       fetchResources();
     } catch (err) { console.error(err); }
   };

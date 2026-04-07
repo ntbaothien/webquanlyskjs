@@ -6,8 +6,8 @@ import { role } from '../middleware/role.js';
 const router = express.Router();
 
 router.get('/:eventId', auth, getResources);
-router.post('/', auth, role(['ORGANIZER', 'ADMIN']), createResource);
-router.put('/:id', auth, role(['ORGANIZER', 'ADMIN']), updateResource);
-router.delete('/:id', auth, role(['ORGANIZER', 'ADMIN']), deleteResource);
+router.post('/', auth, role('ORGANIZER', 'ADMIN'), createResource);
+router.put('/:id', auth, role('ORGANIZER', 'ADMIN'), updateResource);
+router.delete('/:id', auth, role('ORGANIZER', 'ADMIN'), deleteResource);
 
 export default router;

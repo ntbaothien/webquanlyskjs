@@ -31,8 +31,8 @@ async function checkAndSend24hReminder() {
 
     for (const event of events) {
       // Get attendees (registrations + bookings)
-      const registrations = await Registration.find({ eventId: event._id }).select('userId');
-      const bookings = await Booking.find({ eventId: event._id }).select('userId');
+      const registrations = await Registration.find({ eventId: event._id, status: 'CONFIRMED' }).select('userId');
+      const bookings = await Booking.find({ eventId: event._id, status: 'CONFIRMED' }).select('userId');
 
       const userIds = [
         ...registrations.map(r => r.userId),
@@ -118,8 +118,8 @@ async function checkAndSend1hReminder() {
     console.log(`Found ${events.length} events for 1h reminder`);
 
     for (const event of events) {
-      const registrations = await Registration.find({ eventId: event._id }).select('userId');
-      const bookings = await Booking.find({ eventId: event._id }).select('userId');
+      const registrations = await Registration.find({ eventId: event._id, status: 'CONFIRMED' }).select('userId');
+      const bookings = await Booking.find({ eventId: event._id, status: 'CONFIRMED' }).select('userId');
 
       const userIds = [
         ...registrations.map(r => r.userId),

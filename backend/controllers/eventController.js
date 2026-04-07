@@ -557,6 +557,11 @@ export const addToWaitlist = async (req, res) => {
 
     const existing = await Waitlist.findOne({ eventId, userId });
     if (existing) {
+      if (existing.notified) {
+        existing.notified = false;
+        await existing.save();
+        return res.json({ message: 'Chúng tôi sẽ thông báo cho bạn khi có ghế trống! 🔔' });
+      }
       return res.status(400).json({ error: 'Bạn đã đăng ký nhận thông báo' });
     }
 
@@ -574,7 +579,7 @@ export const getWaitlistStatus = async (req, res) => {
   try {
     const eventId = req.params.id;
     const userId = req.user._id;
-    const existing = await Waitlist.findOne({ eventId, userId });
+    const existing = await Waitlist.findOne({ eventId, userId, notified: false });
     res.json({ onWaitlist: !!existing });
   } catch (error) {
     res.status(500).json({ error: error.message });
