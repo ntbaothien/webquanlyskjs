@@ -1,9 +1,11 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import axiosInstance from '../../utils/axiosInstance';
 import AdminLayout from '../../components/admin/AdminLayout';
 import './Admin.css';
 
 export default function AdminEventManagePage() {
+  const navigate = useNavigate();
   const [data, setData] = useState({ content: [], totalPages: 0, totalElements: 0 });
   const [filters, setFilters] = useState({ keyword: '', status: '', page: 0 });
   const [loading, setLoading] = useState(true);

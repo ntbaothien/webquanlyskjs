@@ -50,15 +50,15 @@ export default function ResourceManagePage() {
           <div className="form-card" style={{ padding: '1.5rem', background: 'var(--bg-card)', borderRadius: '12px' }}>
             <h3>Thêm tài nguyên</h3>
             <form onSubmit={handleSubmit} style={{ marginTop: '1rem', display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              <input value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} placeholder="Tên tài nguyên" required style={{ padding: '0.6rem', borderRadius: '8px', background: 'var(--bg-input)', color: 'white', border: '1px solid var(--border)' }} />
-              <select value={formData.type} onChange={e => setFormData({...formData, type: e.target.value})} style={{ padding: '0.6rem', borderRadius: '8px', background: 'var(--bg-input)', color: 'white', border: '1px solid var(--border)' }}>
-                <option value="Equipment">Thiết bị</option>
-                <option value="Venue">Địa điểm/Hậu cần</option>
-                <option value="Staff">Nhân sự</option>
-                <option value="Others">Khác</option>
+              <input value={formData.name} onChange={e => setFormData({...formData, name: e.target.value})} placeholder="Tên tài nguyên" required style={{ padding: '0.6rem', borderRadius: '8px', background: 'var(--bg-input)', color: 'var(--text-primary)', border: '1px solid var(--border)' }} />
+              <select value={formData.type} onChange={e => setFormData({...formData, type: e.target.value})} style={{ padding: '0.6rem', borderRadius: '8px', background: 'var(--bg-input)', color: 'var(--text-primary)', border: '1px solid var(--border)' }}>
+                <option value="Equipment" style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}>Thiết bị</option>
+                <option value="Venue" style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}>Địa điểm/Hậu cần</option>
+                <option value="Staff" style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}>Nhân sự</option>
+                <option value="Others" style={{ background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}>Khác</option>
               </select>
-              <input type="number" value={formData.quantity} onChange={e => setFormData({...formData, quantity: e.target.value})} placeholder="Số lượng" required style={{ padding: '0.6rem', borderRadius: '8px', background: 'var(--bg-input)', color: 'white', border: '1px solid var(--border)' }} />
-              <textarea value={formData.notes} onChange={e => setFormData({...formData, notes: e.target.value})} placeholder="Ghi chú..." style={{ padding: '0.6rem', borderRadius: '8px', background: 'var(--bg-input)', color: 'white', border: '1px solid var(--border)' }} />
+              <input type="number" value={formData.quantity} onChange={e => setFormData({...formData, quantity: e.target.value})} placeholder="Số lượng" required style={{ padding: '0.6rem', borderRadius: '8px', background: 'var(--bg-input)', color: 'var(--text-primary)', border: '1px solid var(--border)' }} />
+              <textarea value={formData.notes} onChange={e => setFormData({...formData, notes: e.target.value})} placeholder="Ghi chú..." style={{ padding: '0.6rem', borderRadius: '8px', background: 'var(--bg-input)', color: 'var(--text-primary)', border: '1px solid var(--border)' }} />
               <button type="submit" className="btn-register">Lưu</button>
             </form>
           </div>
