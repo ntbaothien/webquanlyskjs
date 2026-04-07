@@ -306,6 +306,36 @@
 
 .btn-bell svg { flex-shrink: 0; }
 
+/* Realtime flash animation */
+@keyframes bellRing {
+  0%, 100% { transform: rotate(0); }
+  10%       { transform: rotate(14deg); }
+  20%       { transform: rotate(-12deg); }
+  30%       { transform: rotate(10deg); }
+  40%       { transform: rotate(-8deg); }
+  50%       { transform: rotate(6deg); }
+  60%       { transform: rotate(-4deg); }
+  70%       { transform: rotate(2deg); }
+  80%       { transform: rotate(0); }
+}
+@keyframes badgePulse {
+  0%   { transform: scale(1); box-shadow: 0 0 0 0 rgba(233,69,96,0.7); }
+  40%  { transform: scale(1.3); box-shadow: 0 0 0 6px rgba(233,69,96,0); }
+  100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(233,69,96,0); }
+}
+
+.btn-bell.bell-flash {
+  animation: bellRing 0.6s ease;
+  color: #fbbf24;
+  border-color: rgba(251,191,36,0.5);
+  background: rgba(251,191,36,0.1);
+}
+
+.bell-badge.badge-pulse {
+  animation: badgePulse 0.7s ease;
+}
+
+
 .bell-badge {
   position: absolute;
   top: -5px;

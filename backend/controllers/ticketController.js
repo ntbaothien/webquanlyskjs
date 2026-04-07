@@ -80,8 +80,9 @@ export const cancelRegistration = async (req, res) => {
 
     res.json({ message: 'Đã hủy đăng ký thành công' });
 
-    // Waitlist Notification Trigger
-    triggerWaitlistNotification(reg.eventId);
+    // Waitlist Notification Trigger (realtime)
+    const io = req.app.get('io');
+    triggerWaitlistNotification(reg.eventId, io);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -136,8 +137,9 @@ export const cancelBooking = async (req, res) => {
 
     res.json({ message: 'Đã hủy vé và hoàn tiền thành công' });
 
-    // Waitlist Notification Trigger
-    triggerWaitlistNotification(booking.eventId);
+    // Waitlist Notification Trigger (realtime)
+    const io = req.app.get('io');
+    triggerWaitlistNotification(booking.eventId, io);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -270,25 +272,47 @@ export const markAllRead = async (req, res) => {
   }
 };
 
-// Helper to notify waitlist
-async function triggerWaitlistNotification(eventId) {
+// Helper to notify waitlist with realtime socket
+async function triggerWaitlistNotification(eventId, io) {
   try {
     const event = await Event.findById(eventId);
+    if (!event) return;
+
     const waitingUsers = await Waitlist.find({ eventId, notified: false });
-    
     if (waitingUsers.length === 0) return;
 
+    const title   = 'Có chỗ trống! 🎟️';
+    const message = `Vừa có chỗ trống cho sự kiện "${event.title}". Đăng ký ngay trước khi hết!`;
+    const link    = `/events/${eventId}`;
+
     for (const wait of waitingUsers) {
-      await Notification.create({
+      // Lưu vào DB
+      const notif = await Notification.create({
         userId: wait.userId,
-        title: 'Ghế trống khả dụng! 🎟️',
-        message: `Một ghế vừa trống cho sự kiện "${event.title}". Hãy đăng ký ngay trước khi hết!`,
-        type: 'EVENT_UPDATE',
-        link: `/events/${eventId}`
+        title,
+        message,
+        type: 'WAITLIST',
+        link
       });
+
+      // Emit realtime qua Socket.IO
+      if (io) {
+        io.to(`user:${wait.userId}`).emit('notification', {
+          _id:       notif._id,
+          title,
+          message,
+          type:      'WAITLIST',
+          link,
+          isRead:    false,
+          createdAt: notif.createdAt
+        });
+      }
+
       wait.notified = true;
       await wait.save();
     }
+
+    console.log(`🔔 Waitlist notified: ${waitingUsers.length} user(s) for event "${event.title}"`);
   } catch (err) {
     console.error('Waitlist notify error:', err);
   }

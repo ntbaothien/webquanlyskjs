@@ -60,10 +60,16 @@ export default function Navbar() {
             {user && (
               <>
                 {user.role === 'ATTENDEE' && (
-                  <Link to="/my-registrations" className={isActive('/my-registrations')}
-                    onClick={() => setMenuOpen(false)}>
-                    {t('nav.myRegistrations')}
-                  </Link>
+                  <>
+                    <Link to="/my-registrations" className={isActive('/my-registrations')}
+                      onClick={() => setMenuOpen(false)}>
+                      {t('nav.myRegistrations')}
+                    </Link>
+                    <Link to="/my-waitlist" className={isActive('/my-waitlist')}
+                      onClick={() => setMenuOpen(false)}>
+                      🔔 {t('nav.myWaitlist')}
+                    </Link>
+                  </>
                 )}
                 {(user.role === 'ORGANIZER' || user.role === 'ADMIN') && (
                   <>

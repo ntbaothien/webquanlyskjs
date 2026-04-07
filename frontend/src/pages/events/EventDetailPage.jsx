@@ -313,6 +313,10 @@ export default function EventDetailPage() {
   const [showReport, setShowReport] = useState(false);
   const [myReport, setMyReport] = useState(null);
 
+  // Waitlist
+  const [waitlistStatus, setWaitlistStatus] = useState({ onWaitlist: false, count: 0 });
+  const [waitlistLoading, setWaitlistLoading] = useState(false);
+
   const countdown = useCountdown(data?.event?.startDate);
 
   const locale = i18n.language === 'vi' ? 'vi-VN' : 'en-US';
@@ -334,7 +338,13 @@ export default function EventDetailPage() {
     axiosInstance.get(`/events/${id}/my-report`)
       .then(r => setMyReport(r.data.report))
       .catch(() => {});
-  }, [id]);
+
+    if (user) {
+      axiosInstance.get(`/events/${id}/waitlist-status`)
+        .then(r => setWaitlistStatus(r.data))
+        .catch(() => {});
+    }
+  }, [id, user]);
 
   const handleRegister = async () => {
     if (!user) { navigate('/login'); return; }
@@ -374,6 +384,29 @@ export default function EventDetailPage() {
       const { data: res } = await axiosInstance.post(`/users/me/saved/${id}`);
       setSaved(res.saved);
     } catch {}
+  };
+
+  const handleWaitlist = async () => {
+    if (!user) { navigate('/login'); return; }
+    setWaitlistLoading(true);
+    try {
+      if (waitlistStatus.onWaitlist) {
+        await axiosInstance.delete(`/events/${id}/waitlist`);
+        setWaitlistStatus(prev => ({ ...prev, onWaitlist: false, count: Math.max(0, (prev.count || 1) - 1) }));
+        setMessage(t('waitlist.leftMessage'));
+        setMsgType('info');
+      } else {
+        await axiosInstance.post(`/events/${id}/waitlist`);
+        setWaitlistStatus(prev => ({ ...prev, onWaitlist: true, count: (prev.count || 0) + 1 }));
+        setMessage(t('waitlist.joinedMessage'));
+        setMsgType('success');
+      }
+    } catch (err) {
+      setMessage(err.response?.data?.error || t('common.error'));
+      setMsgType('error');
+    } finally {
+      setWaitlistLoading(false);
+    }
   };
 
   if (loading) return <><Navbar /><div className="loading-state">⏳ {t('eventDetail.loading')}</div></>;
@@ -477,10 +510,31 @@ export default function EventDetailPage() {
 
                 {event.status === 'PUBLISHED' && user?.role === 'ATTENDEE' && !eventPast && (
                   <>
-                    {!isPaid && !alreadyRegistered && (
-                      <button className="btn-register" onClick={handleRegister} disabled={spotsLeft === 0}>
-                        {spotsLeft === 0 ? `❌ ${t('eventDetail.soldOut')}` : `🎟 ${t('eventDetail.registerFree')}`}
+                    {!isPaid && !alreadyRegistered && spotsLeft > 0 && (
+                      <button className="btn-register" onClick={handleRegister}>
+                        🎟 {t('eventDetail.registerFree')}
                       </button>
+                    )}
+                    {!isPaid && !alreadyRegistered && spotsLeft === 0 && (
+                      <>
+                        <button className="btn-register" disabled style={{ opacity: 0.5 }}>
+                          ❌ {t('eventDetail.soldOut')}
+                        </button>
+                        <button
+                          className={`btn-waitlist${waitlistStatus.onWaitlist ? ' on-waitlist' : ''}`}
+                          onClick={handleWaitlist}
+                          disabled={waitlistLoading}
+                        >
+                          {waitlistLoading ? '...' : waitlistStatus.onWaitlist
+                            ? `🔕 ${t('waitlist.leave')}`
+                            : `🔔 ${t('waitlist.join')}`}
+                        </button>
+                        {waitlistStatus.count > 0 && (
+                          <div className="waitlist-count-info">
+                            👥 {t('waitlist.peopleWaiting', { count: waitlistStatus.count })}
+                          </div>
+                        )}
+                      </>
                     )}
                     {!isPaid && alreadyRegistered && (
                       <div className="msg-box success">✅ {t('eventDetail.youRegistered')}</div>
@@ -491,7 +545,25 @@ export default function EventDetailPage() {
                       </button>
                     )}
                     {isPaid && totalAvailablePaid === 0 && (
-                      <button className="btn-register" disabled>❌ {t('eventDetail.ticketsSoldOut')}</button>
+                      <>
+                        <button className="btn-register" disabled style={{ opacity: 0.5 }}>
+                          ❌ {t('eventDetail.ticketsSoldOut')}
+                        </button>
+                        <button
+                          className={`btn-waitlist${waitlistStatus.onWaitlist ? ' on-waitlist' : ''}`}
+                          onClick={handleWaitlist}
+                          disabled={waitlistLoading}
+                        >
+                          {waitlistLoading ? '...' : waitlistStatus.onWaitlist
+                            ? `🔕 ${t('waitlist.leave')}`
+                            : `🔔 ${t('waitlist.join')}`}
+                        </button>
+                        {waitlistStatus.count > 0 && (
+                          <div className="waitlist-count-info">
+                            👥 {t('waitlist.peopleWaiting', { count: waitlistStatus.count })}
+                          </div>
+                        )}
+                      </>
                     )}
                   </>
                 )}

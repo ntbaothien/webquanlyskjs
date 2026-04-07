@@ -1594,6 +1594,45 @@
 .report-done h4 { color: #4ade80; margin: 0 0 0.5rem; font-size: 1.1rem; }
 .report-done p { color: rgba(255,255,255,0.6); font-size: 0.88rem; margin-bottom: 1.5rem; line-height: 1.6; }
 
+/* Waitlist button */
+.btn-waitlist {
+  width: 100%;
+  padding: 0.85rem 1rem;
+  border-radius: 12px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  margin-top: 0.5rem;
+  background: rgba(251,191,36,0.12);
+  border: 1px solid rgba(251,191,36,0.35);
+  color: #fbbf24;
+}
+.btn-waitlist:hover:not(:disabled) {
+  background: rgba(251,191,36,0.22);
+  border-color: rgba(251,191,36,0.6);
+  transform: translateY(-1px);
+}
+.btn-waitlist.on-waitlist {
+  background: rgba(248,113,113,0.12);
+  border-color: rgba(248,113,113,0.35);
+  color: #f87171;
+}
+.btn-waitlist.on-waitlist:hover:not(:disabled) {
+  background: rgba(248,113,113,0.22);
+  border-color: rgba(248,113,113,0.6);
+}
+.btn-waitlist:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.waitlist-count-info {
+  text-align: center;
+  font-size: 0.8rem;
+  color: rgba(255,255,255,0.5);
+  margin-top: 0.35rem;
+}
+
 /* Forum & Polls */
 .event-forum, .event-polls { margin-top: 1rem; }
 .forum-post-form textarea { width: 100%; height: 100px; padding: 1rem; border-radius: 12px; background: #16213e; color: white; border: 1px solid rgba(255,255,255,0.1); resize: none; }
