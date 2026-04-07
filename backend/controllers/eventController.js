@@ -491,11 +491,31 @@ export const bookEvent = async (req, res) => {
         holdExpired: true
       });
     }
+    // Nếu quantity đặt > hold hiện tại → tự nâng hold (miễn là còn ghế)
     if (existingHold.quantity < qty) {
-      return res.status(400).json({
-        error: `Phìiên giữ chỗ chỉ dành cho ${existingHold.quantity} ghế, bạn đang cố đặt ${qty} ghế.`,
-        holdExpired: false
-      });
+      const activeHoldsAgg = await SeatHold.aggregate([
+        {
+          $match: {
+            eventId: event._id,
+            zoneId: zoneId.toString(),
+            expiresAt: { $gt: now },
+            userId: { $ne: req.user._id }
+          }
+        },
+        { $group: { _id: null, total: { $sum: '$quantity' } } }
+      ]);
+      const activeHeld = activeHoldsAgg[0]?.total || 0;
+      const available = zone.totalSeats - zone.soldSeats - activeHeld;
+      if (qty > available) {
+        return res.status(400).json({
+          error: `Khu "${zone.name}" chỉ còn ${available} ghế khả dụng.`,
+          soldOut: available === 0
+        });
+      }
+      // Nâng hold lên số lượng mới, gia hạn thêm 5 phút
+      existingHold.quantity = qty;
+      existingHold.expiresAt = new Date(now.getTime() + 5 * 60 * 1000);
+      await existingHold.save();
     }
 
     const totalPrice = zone.price * qty;

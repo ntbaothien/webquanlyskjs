@@ -117,6 +117,22 @@ export default function BookingPage() {
     }
   };
 
+  // Cập nhật hold khi đổi quantity
+  const updateHold = async (newQty) => {
+    if (!selectedZone || !isHoldValid) return;
+    const zoneId = selectedZone._id || selectedZone.id;
+    setHoldLoading(true);
+    setHoldError('');
+    try {
+      const { data } = await axiosInstance.post(`/events/${eventId}/hold`, { zoneId, quantity: newQty });
+      setHoldExpiresAt(data.expiresAt); // gia hạn countdown
+    } catch (err) {
+      setHoldError(err.response?.data?.error || 'Không thể cập nhật giữ chỗ');
+    } finally {
+      setHoldLoading(false);
+    }
+  };
+
   // Apply coupon
   const handleApplyCoupon = async () => {
     if (!couponCode.trim()) return;
@@ -314,15 +330,22 @@ export default function BookingPage() {
                 <h3 style={{ marginBottom: '1rem' }}>{t('booking.selectQuantity')}</h3>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '1.5rem' }}>
                   <button
-                    onClick={() => { setQuantity(q => Math.max(1, q - 1)); removeCoupon(); }}
+                    onClick={() => {
+                      const newQty = Math.max(1, quantity - 1);
+                      setQuantity(newQty);
+                      removeCoupon();
+                      if (newQty !== quantity) updateHold(newQty);
+                    }}
                     style={{ width: 44, height: 44, borderRadius: '50%', border: '1px solid var(--border-strong)', background: 'var(--bg-input)', color: 'var(--text-primary)', fontSize: '1.5rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                   >−</button>
                   <span style={{ fontSize: '2rem', fontWeight: 800, minWidth: 48, textAlign: 'center', color: 'var(--text-primary)' }}>{quantity}</span>
                   <button
                     onClick={() => {
                       const max = Math.max(0, selectedZone.totalSeats - selectedZone.soldSeats);
-                      setQuantity(q => Math.min(max, q + 1));
+                      const newQty = Math.min(max, quantity + 1);
+                      setQuantity(newQty);
                       removeCoupon();
+                      if (newQty !== quantity) updateHold(newQty);
                     }}
                     style={{ width: 44, height: 44, borderRadius: '50%', border: '1px solid var(--border-strong)', background: 'var(--bg-input)', color: 'var(--text-primary)', fontSize: '1.5rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                   >+</button>
