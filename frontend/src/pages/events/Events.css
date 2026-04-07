@@ -1593,3 +1593,15 @@
 .report-done-icon { font-size: 3rem; margin-bottom: 0.75rem; }
 .report-done h4 { color: #4ade80; margin: 0 0 0.5rem; font-size: 1.1rem; }
 .report-done p { color: rgba(255,255,255,0.6); font-size: 0.88rem; margin-bottom: 1.5rem; line-height: 1.6; }
+
+/* Forum & Polls */
+.event-forum, .event-polls { margin-top: 1rem; }
+.forum-post-form textarea { width: 100%; height: 100px; padding: 1rem; border-radius: 12px; background: #16213e; color: white; border: 1px solid rgba(255,255,255,0.1); resize: none; }
+.forum-post-card { background: #1a1a2e; padding: 1.5rem; border-radius: 12px; border: 1px solid rgba(255,255,255,0.1); margin-bottom: 1.5rem; }
+.forum-post-auth { display: flex; justify-content: space-between; font-size: 0.85rem; color: #94a3b8; margin-bottom: 0.75rem; }
+.forum-post-content { font-size: 1rem; line-height: 1.6; color: #fff; }
+.forum-comment-item { margin-top: 0.5rem; padding: 0.5rem; background: rgba(255,255,255,0.03); border-radius: 6px; font-size: 0.9rem; }
+.poll-card:hover { border-color: #e94560; transform: translateY(-2px); transition: all 0.2s; }
+.btn-poll-option:hover { border-color: #e94560 !important; background: rgba(233, 69, 96, 0.05) !important; }
+.event-tabs { border-bottom-color: rgba(255,255,255,0.1) !important; }
+.tab-link:hover { color: #fff !important; }

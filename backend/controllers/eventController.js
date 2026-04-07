@@ -6,6 +6,7 @@ import Review from '../models/Review.js';
 import User from '../models/User.js';
 import Notification from '../models/Notification.js';
 import EventReport from '../models/EventReport.js';
+import Waitlist from '../models/Waitlist.js';
 import { paginate } from '../utils/pagination.js';
 import { generateTicketCode } from '../utils/generateTicketCode.js';
 
@@ -541,6 +542,40 @@ export const getMyReport = async (req, res) => {
       reporterId: req.user._id
     }).select('reason status createdAt').lean();
     res.json({ report: report || null });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+/**
+ * POST /api/events/:id/waitlist
+ */
+export const addToWaitlist = async (req, res) => {
+  try {
+    const eventId = req.params.id;
+    const userId = req.user._id;
+
+    const existing = await Waitlist.findOne({ eventId, userId });
+    if (existing) {
+      return res.status(400).json({ error: 'Bạn đã đăng ký nhận thông báo' });
+    }
+
+    await Waitlist.create({ eventId, userId });
+    res.json({ message: 'Chúng tôi sẽ thông báo cho bạn khi có ghế trống! 🔔' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+/**
+ * GET /api/events/:id/waitlist-status
+ */
+export const getWaitlistStatus = async (req, res) => {
+  try {
+    const eventId = req.params.id;
+    const userId = req.user._id;
+    const existing = await Waitlist.findOne({ eventId, userId });
+    res.json({ onWaitlist: !!existing });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

@@ -136,6 +136,9 @@ export default function AdminEventManagePage() {
                       <button className="admin-btn admin-btn-info" onClick={() => handleViewRegistrations(e.id, e.title)}>
                         👥
                       </button>
+                      <button className="admin-btn admin-btn-secondary" onClick={() => navigate(`/admin/events/${e.id}/resources`)}>
+                        🛠
+                      </button>
                       {e.status !== 'CANCELLED' && (
                         <button className="admin-btn admin-btn-danger" onClick={() => handleDelete(e.id, e.title)}>
                           🗑️

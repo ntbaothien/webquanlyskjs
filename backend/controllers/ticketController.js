@@ -4,6 +4,7 @@ import Booking from '../models/Booking.js';
 import Notification from '../models/Notification.js';
 import User from '../models/User.js';
 import Event from '../models/Event.js';
+import Waitlist from '../models/Waitlist.js';
 import { sendTicketEmail } from '../utils/mailer.js';
 
 /**
@@ -78,6 +79,9 @@ export const cancelRegistration = async (req, res) => {
     );
 
     res.json({ message: 'Đã hủy đăng ký thành công' });
+
+    // Waitlist Notification Trigger
+    triggerWaitlistNotification(reg.eventId);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -131,6 +135,9 @@ export const cancelBooking = async (req, res) => {
     });
 
     res.json({ message: 'Đã hủy vé và hoàn tiền thành công' });
+
+    // Waitlist Notification Trigger
+    triggerWaitlistNotification(booking.eventId);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -262,3 +269,27 @@ export const markAllRead = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
+
+// Helper to notify waitlist
+async function triggerWaitlistNotification(eventId) {
+  try {
+    const event = await Event.findById(eventId);
+    const waitingUsers = await Waitlist.find({ eventId, notified: false });
+    
+    if (waitingUsers.length === 0) return;
+
+    for (const wait of waitingUsers) {
+      await Notification.create({
+        userId: wait.userId,
+        title: 'Ghế trống khả dụng! 🎟️',
+        message: `Một ghế vừa trống cho sự kiện "${event.title}". Hãy đăng ký ngay trước khi hết!`,
+        type: 'EVENT_UPDATE',
+        link: `/events/${eventId}`
+      });
+      wait.notified = true;
+      await wait.save();
+    }
+  } catch (err) {
+    console.error('Waitlist notify error:', err);
+  }
+}
