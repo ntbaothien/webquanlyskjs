@@ -93,15 +93,22 @@ io.on('connection', (socket) => {
   });
 
   socket.on('chat:join', ({ userId, userName }) => {
-    socket.join('chat:support');
-    console.log(`💬 ${userName} joined support chat`);
+    // Each user joins their own private room
+    const userRoom = `chat:user:${userId}`;
+    socket.join(userRoom);
+    // Store userId on socket for later reference
+    socket.data.userId = userId;
+    socket.data.userName = userName;
+    console.log(`💬 ${userName} joined private room ${userRoom}`);
   });
 
   socket.on('chat:message', async ({ userId, userName, userRole, message }) => {
     try {
-      // Save user message
+      const userRoom = `chat:user:${userId}`;
+
+      // Save user message with user-specific roomId
       const userMsg = await ChatMessage.create({
-        roomId: 'support',
+        roomId: `user:${userId}`,
         senderId: userId,
         senderName: userName,
         senderRole: userRole || 'ATTENDEE',
@@ -109,22 +116,23 @@ io.on('connection', (socket) => {
         isBot: false
       });
 
-      // Broadcast user message to all in room
-      io.to('chat:support').emit('chat:message', userMsg.toObject());
+      // Send user message back only to this user's private room
+      io.to(userRoom).emit('chat:message', userMsg.toObject());
 
       // Generate AI bot reply after short delay
       setTimeout(async () => {
         try {
           const replyText = await getBotReply(message);
           const botMsg = await ChatMessage.create({
-            roomId: 'support',
+            roomId: `user:${userId}`,
             senderId: 'bot',
             senderName: 'EventHub Bot',
             senderRole: 'BOT',
             message: replyText,
             isBot: true
           });
-          io.to('chat:support').emit('chat:message', botMsg.toObject());
+          // Send bot reply only to this user's private room
+          io.to(userRoom).emit('chat:message', botMsg.toObject());
         } catch (err) {
           console.error('Bot reply error:', err);
         }

@@ -59,8 +59,22 @@ export default function ChatBox() {
 
     socket.on('chat:message', (msg) => {
       setMessages(prev => {
-        // avoid duplicates
+        // Avoid duplicates: skip if exact same _id already exists
         if (prev.find(m => m._id === msg._id)) return prev;
+        // Replace optimistic temp message with server-confirmed version (same sender, same text sent close in time)
+        const userId = user?.id || user?._id;
+        if (!msg.isBot && msg.senderId === userId) {
+          const tempIdx = prev.findIndex(
+            m => m._id?.toString().startsWith('temp-') && m.message === msg.message
+          );
+          if (tempIdx !== -1) {
+            const updated = [...prev];
+            updated[tempIdx] = msg;
+            return updated;
+          }
+        }
+        // If it's a bot reply, stop typing indicator
+        if (msg.isBot) setTyping(false);
         return [...prev, msg];
       });
       if (!open) setUnread(prev => prev + 1);
@@ -88,9 +102,19 @@ export default function ChatBox() {
     if (!text || !user) return;
 
     const userId = user.id || user._id;
-
     const socket = getSocket();
 
+    // Optimistically add user message immediately to UI
+    const tempMsg = {
+      _id: `temp-${Date.now()}`,
+      senderId: userId,
+      senderName: user.fullName,
+      senderRole: user.role,
+      message: text,
+      isBot: false,
+      createdAt: new Date().toISOString()
+    };
+    setMessages(prev => [...prev, tempMsg]);
     setInput('');
     setTyping(true);
 
@@ -101,8 +125,8 @@ export default function ChatBox() {
       message: text
     });
 
-    // Hide typing after max 4s (bot will respond via socket)
-    setTimeout(() => setTyping(false), 4000);
+    // Hide typing after max 5s if bot doesn't respond
+    setTimeout(() => setTyping(false), 5000);
   };
 
   const handleKey = (e) => {
