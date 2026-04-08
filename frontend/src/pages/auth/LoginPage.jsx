@@ -3,9 +3,10 @@ import { useTranslation } from 'react-i18next';
 import useAuthStore from '../../store/authStore';
 import './Auth.css';
 import { useState } from 'react';
+import { GoogleLogin } from '@react-oauth/google';
 
 export default function LoginPage() {
-  const { login, isLoading } = useAuthStore();
+  const { login, googleLogin, isLoading } = useAuthStore();
   const { t } = useTranslation();
   const navigate = useNavigate();
   const [form, setForm] = useState({ email: '', password: '' });
@@ -28,6 +29,15 @@ export default function LoginPage() {
     }
   };
 
+  const handleGoogleSuccess = async (credentialResponse) => {
+    try {
+      await googleLogin(credentialResponse.credential);
+      navigate('/');
+    } catch (err) {
+      setError(err.response?.data?.error || 'Đăng nhập Google thất bại');
+    }
+  };
+
   return (
     <div className="auth-bg">
       <div className="auth-card">
@@ -47,6 +57,21 @@ export default function LoginPage() {
             )}
           </div>
         )}
+        
+        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '16px' }}>
+          <GoogleLogin
+            onSuccess={handleGoogleSuccess}
+            onError={() => {
+              setError('Đăng nhập Google thất bại');
+            }}
+            useOneTap
+          />
+        </div>
+        
+        <div style={{ textAlign: 'center', margin: '16px 0', color: '#8b8b8b', fontSize: '14px' }}>
+          <span>HOẶC</span>
+        </div>
+
         <form onSubmit={handleSubmit}>
           <div className="form-group">
             <label>{t('auth.email')}</label>
