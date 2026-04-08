@@ -28,7 +28,7 @@ export const register = async (req, res) => {
       email: email.toLowerCase(),
       password: hashedPassword,
       role: role || 'ATTENDEE',
-      balance: 500000 // 500k VND default for demo
+      balance: 0 // 0 VND default
     });
 
     const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {

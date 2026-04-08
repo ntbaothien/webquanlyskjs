@@ -38,8 +38,9 @@ export default function BookingPage() {
   const [loading, setLoading] = useState(true);
   const [selectedZone, setSelectedZone] = useState(null);
   const [quantity, setQuantity] = useState(1);
-  const [submitting, setSubmitting] = useState(false);
+  const [submitting, setSubmitting]     = useState(false);
   const [error, setError] = useState('');
+  const [payMethod, setPayMethod]       = useState('BALANCE'); // 'BALANCE' | 'MOMO'
 
   // Seat Hold state
   const [holdExpiresAt, setHoldExpiresAt] = useState(null);  // thời điểm hết hạn
@@ -214,17 +215,43 @@ export default function BookingPage() {
     setError('');
     setSubmitting(true);
     try {
-      await axiosInstance.post(`/events/${eventId}/book`, {
-        zoneId: selectedZone._id || selectedZone.id,
-        quantity
-      });
+      if (payMethod === 'MOMO') {
+        // ===== THANH TOÁN QUA MOMO =====
+        const { data } = await axiosInstance.post('/payment/momo/book', {
+          eventId,
+          zoneId: selectedZone._id || selectedZone.id,
+          quantity
+        });
 
-      // Mark coupon as used
-      if (couponInfo) {
-        try { await axiosInstance.post('/coupons/use', { code: couponInfo.code }); } catch {}
+        if (couponInfo) {
+          try { await axiosInstance.post('/coupons/use', { code: couponInfo.code }); } catch {}
+        }
+
+        if (data.payUrl) {
+          window.location.href = data.payUrl;
+        } else {
+          setError('Không nhận được link thanh toán từ MoMo');
+        }
+      } else {
+        // ===== THANH TOÁN BẰNG SỐ DƯ =====
+        const { data } = await axiosInstance.post(`/events/${eventId}/book`, {
+          zoneId: selectedZone._id || selectedZone.id,
+          quantity
+        });
+
+        if (couponInfo) {
+          try { await axiosInstance.post('/coupons/use', { code: couponInfo.code }); } catch {}
+        }
+
+        // Cập nhật balance trong authStore
+        if (data.newBalance !== undefined) {
+          useAuthStore.getState().updateUser({ balance: data.newBalance });
+        }
+
+        navigate('/my-tickets', {
+          state: { success: true, message: `Đặt ${quantity} vé khu ${selectedZone.name} thành công! 🎉` }
+        });
       }
-
-      navigate('/my-tickets', { state: { success: true, message: `Đặt ${quantity} vé khu ${selectedZone.name} thành công! 🎉` } });
     } catch (err) {
       const errData = err.response?.data;
       if (errData?.holdExpired) {
@@ -236,7 +263,6 @@ export default function BookingPage() {
         setError(errData.error || 'Hết ghế, vui lòng chọn khu vực khác');
         setSelectedZone(null);
         setHoldExpiresAt(null);
-        // Reload zones
         axiosInstance.get(`/events/${eventId}`).then(({ data }) => setZones(data.event?.seatZones || []));
       } else {
         setError(errData?.error || t('common.error'));
@@ -251,6 +277,8 @@ export default function BookingPage() {
 
   const totalPriceBeforeDiscount = selectedZone ? selectedZone.price * quantity : 0;
   const finalPrice = Math.max(0, totalPriceBeforeDiscount - couponDiscount);
+  const userBalance = user?.balance || 0;
+  const balanceEnough = userBalance >= finalPrice;
 
   return (
     <>
@@ -511,20 +539,116 @@ export default function BookingPage() {
 
                   {error && <div className="msg-box error" style={{ marginBottom: '1rem' }}>{error}</div>}
 
-                  <button
-                    onClick={handleBook}
-                    disabled={submitting || !isHoldValid}
-                    style={{
-                      width: '100%', padding: '0.9rem', borderRadius: '10px',
-                      background: submitting || !isHoldValid
-                        ? 'rgba(108,99,255,0.35)'
-                        : 'linear-gradient(135deg, #6c63ff, #a78bfa)',
-                      color: '#fff', border: 'none', fontWeight: 700, fontSize: '1rem',
-                      cursor: submitting || !isHoldValid ? 'not-allowed' : 'pointer', transition: 'all 0.2s'
-                    }}
-                  >
-                    {submitting ? t('booking.processing') : !isHoldValid ? '⏰ Giữ chỗ đã hết hạn' : t('booking.confirmBook')}
-                  </button>
+                  {/* ── Payment Method Selection ── */}
+                  <div style={{ marginBottom: '1rem' }}>
+                    <p style={{ fontSize: '0.82rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '0.5rem' }}>
+                      Phương thức thanh toán:
+                    </p>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.5rem' }}>
+                      {/* Số dư */}
+                      <button
+                        type="button"
+                        onClick={() => setPayMethod('BALANCE')}
+                        style={{
+                          padding: '0.7rem 0.6rem', borderRadius: '10px', cursor: 'pointer',
+                          background: payMethod === 'BALANCE' ? 'rgba(124,58,237,0.15)' : 'rgba(255,255,255,0.04)',
+                          border: `2px solid ${payMethod === 'BALANCE' ? 'rgba(124,58,237,0.5)' : 'rgba(255,255,255,0.1)'}`,
+                          color: payMethod === 'BALANCE' ? '#a78bfa' : 'rgba(255,255,255,0.5)',
+                          fontWeight: 600, fontSize: '0.85rem', transition: 'all 0.2s',
+                          display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.25rem'
+                        }}
+                      >
+                        <span style={{ fontSize: '1.1rem' }}>💰</span>
+                        <span>Số dư ví</span>
+                        <span style={{
+                          fontSize: '0.72rem', fontWeight: 700,
+                          color: balanceEnough ? '#4ade80' : '#f87171'
+                        }}>
+                          {userBalance.toLocaleString(locale)}đ
+                        </span>
+                      </button>
+                      {/* MoMo */}
+                      <button
+                        type="button"
+                        onClick={() => setPayMethod('MOMO')}
+                        style={{
+                          padding: '0.7rem 0.6rem', borderRadius: '10px', cursor: 'pointer',
+                          background: payMethod === 'MOMO' ? 'rgba(174,32,112,0.15)' : 'rgba(255,255,255,0.04)',
+                          border: `2px solid ${payMethod === 'MOMO' ? 'rgba(174,32,112,0.5)' : 'rgba(255,255,255,0.1)'}`,
+                          color: payMethod === 'MOMO' ? '#d63384' : 'rgba(255,255,255,0.5)',
+                          fontWeight: 600, fontSize: '0.85rem', transition: 'all 0.2s',
+                          display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '0.25rem'
+                        }}
+                      >
+                        <span style={{ fontSize: '1.1rem' }}>💳</span>
+                        <span>Ví MoMo</span>
+                        <span style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.35)' }}>Redirect</span>
+                      </button>
+                    </div>
+
+                    {/* Balance warning */}
+                    {payMethod === 'BALANCE' && !balanceEnough && finalPrice > 0 && (
+                      <div style={{
+                        marginTop: '0.5rem', padding: '0.5rem 0.75rem', borderRadius: '8px',
+                        background: 'rgba(248,113,113,0.1)', border: '1px solid rgba(248,113,113,0.25)',
+                        fontSize: '0.78rem', color: '#fca5a5', display: 'flex', alignItems: 'center', gap: '0.4rem'
+                      }}>
+                        ⚠️ Số dư không đủ. Cần thêm {(finalPrice - userBalance).toLocaleString(locale)}đ.
+                        <button
+                          onClick={() => navigate('/wallet')}
+                          style={{
+                            background: 'none', border: 'none', color: '#a78bfa',
+                            fontWeight: 600, cursor: 'pointer', fontSize: '0.78rem', textDecoration: 'underline'
+                          }}
+                        >Nạp tiền</button>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* ── Pay Button ── */}
+                  {payMethod === 'MOMO' ? (
+                    <button
+                      onClick={handleBook}
+                      disabled={submitting || !isHoldValid}
+                      style={{
+                        width: '100%', padding: '0.9rem', borderRadius: '10px',
+                        background: submitting || !isHoldValid
+                          ? 'rgba(174,32,112,0.35)'
+                          : 'linear-gradient(135deg, #ae2070, #d63384)',
+                        color: '#fff', border: 'none', fontWeight: 700, fontSize: '1rem',
+                        cursor: submitting || !isHoldValid ? 'not-allowed' : 'pointer', transition: 'all 0.2s',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem'
+                      }}
+                    >
+                      {submitting ? '⏳ Đang tạo thanh toán...' : !isHoldValid ? '⏰ Giữ chỗ đã hết hạn' : (
+                        <>
+                          <span style={{
+                            background: 'rgba(255,255,255,0.2)', padding: '0.1rem 0.4rem',
+                            borderRadius: '4px', fontSize: '0.75rem', fontWeight: 900
+                          }}>MoMo</span>
+                          Thanh toán {finalPrice.toLocaleString(locale)}đ
+                        </>
+                      )}
+                    </button>
+                  ) : (
+                    <button
+                      onClick={handleBook}
+                      disabled={submitting || !isHoldValid || !balanceEnough}
+                      style={{
+                        width: '100%', padding: '0.9rem', borderRadius: '10px',
+                        background: (submitting || !isHoldValid || !balanceEnough)
+                          ? 'rgba(108,99,255,0.35)'
+                          : 'linear-gradient(135deg, #6c63ff, #a78bfa)',
+                        color: '#fff', border: 'none', fontWeight: 700, fontSize: '1rem',
+                        cursor: (submitting || !isHoldValid || !balanceEnough) ? 'not-allowed' : 'pointer',
+                        transition: 'all 0.2s'
+                      }}
+                    >
+                      {submitting ? '⏳ Đang xử lý...' : !isHoldValid ? '⏰ Giữ chỗ đã hết hạn'
+                        : !balanceEnough ? `💰 Số dư không đủ`
+                        : `💰 Thanh toán ${finalPrice.toLocaleString(locale)}đ`}
+                    </button>
+                  )}
 
                   {/* Group Buy Button */}
                   {isHoldValid && quantity > 1 && (
@@ -541,7 +665,9 @@ export default function BookingPage() {
                   )}
 
                   <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textAlign: 'center', marginTop: '0.75rem' }}>
-                    {t('booking.paymentNote')}
+                    {payMethod === 'MOMO'
+                      ? '💳 Bạn sẽ được chuyển sang MoMo để thanh toán. Vé sẽ được cấp sau khi thanh toán thành công.'
+                      : '💰 Số tiền sẽ được trừ trực tiếp từ số dư ví của bạn.'}
                   </p>
                 </>
               ) : (

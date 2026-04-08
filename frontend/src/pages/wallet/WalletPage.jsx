@@ -162,17 +162,21 @@ export default function WalletPage() {
     setCustomMode(false);
   };
 
-  const handleTopup = async () => {
+  const handleMomoTopup = async () => {
     const amt = Number(amount);
-    if (!amt || amt < 10000) { toast(t('wallet.minAmount'), 'error'); return; }
+    if (!amt || amt < 1000) { toast('Số tiền tối thiểu qua MoMo là 1.000đ', 'error'); return; }
+    if (amt > 50000000) { toast('Số tiền tối đa qua MoMo là 50.000.000đ', 'error'); return; }
     setSubmitting(true);
     try {
-      const { data } = await axiosInstance.post('/users/me/topup', { amount: amt });
-      setPendingTx(data.transaction);
-      setShowPayModal(true);
-      setAmount('');
+      const { data } = await axiosInstance.post('/payment/momo/create', { amount: amt });
+      if (data.payUrl) {
+        // Redirect sang trang thanh toán MoMo
+        window.location.href = data.payUrl;
+      } else {
+        toast('Không nhận được link thanh toán từ MoMo', 'error');
+      }
     } catch (err) {
-      toast(err.response?.data?.error || t('wallet.topupFailed'), 'error');
+      toast(err.response?.data?.error || 'Lỗi tạo thanh toán MoMo', 'error');
     } finally {
       setSubmitting(false);
     }
@@ -251,14 +255,14 @@ export default function WalletPage() {
                 <div className="wallet-custom-input-wrap">
                   <input
                     type="number"
-                    min="10000"
-                    step="10000"
-                    placeholder={t('wallet.customPlaceholder')}
+                    min="1000"
+                    step="1000"
+                    placeholder="Từ 1.000đ"
                     value={amount}
                     onChange={e => setAmount(e.target.value)}
                     className="wallet-custom-input"
                   />
-                  {amount && Number(amount) >= 10000 && (
+                  {amount && Number(amount) >= 1000 && (
                     <span className="wallet-amount-preview">
                       = {Number(amount).toLocaleString('vi-VN')}đ
                     </span>
@@ -267,16 +271,22 @@ export default function WalletPage() {
               )}
 
               <button
-                className="wallet-topup-btn"
-                onClick={handleTopup}
-                disabled={!amount || Number(amount) < 10000 || submitting}>
-                {submitting ? t('wallet.topupProcessing') : `${t('wallet.topupBtn')}${amount && Number(amount) >= 10000 ? ` ${Number(amount).toLocaleString(locale)}đ` : ''}`}
+                className="wallet-topup-btn wallet-momo-btn"
+                onClick={handleMomoTopup}
+                disabled={!amount || Number(amount) < 1000 || submitting}>
+                {submitting ? '⏳ Đang xử lý...' : (
+                  <>
+                    <span className="momo-btn-logo">MoMo</span>
+                    {` Nạp qua MoMo${amount && Number(amount) >= 1000 ? ` ${Number(amount).toLocaleString(locale)}đ` : ''}`}
+                  </>
+                )}
               </button>
 
               <div className="wallet-info-list">
-                <div>✅ {i18n.language === 'vi' ? 'Hỗ trợ chuyển khoản ngân hàng' : 'Supports bank transfer'}</div>
-                <div>⚡ {i18n.language === 'vi' ? 'Xác nhận trong 5–15 phút' : 'Confirmed within 5–15 minutes'}</div>
-                <div>🔒 {i18n.language === 'vi' ? 'Giao dịch bảo mật' : 'Secure transaction'}</div>
+                <div>✅ Thanh toán tức thì qua ví MoMo</div>
+                <div>⚡ Xác nhận tự động, cộng tiền ngay</div>
+                <div>🔒 Bảo mật bởi MoMo</div>
+                <div>📱 Hỗ trợ QR Code và ứng dụng MoMo</div>
               </div>
             </div>
           </div>
@@ -320,7 +330,10 @@ export default function WalletPage() {
                       <div className="wallet-tx-info">
                         <div className="wallet-tx-title">
                           {typeLabel}
-                          {tx.transferCode && (
+                          {tx.method === 'MOMO' && (
+                            <span className="wallet-tx-momo-badge">MoMo</span>
+                          )}
+                          {tx.transferCode && tx.method !== 'MOMO' && (
                             <span className="wallet-tx-code">{tx.transferCode}</span>
                           )}
                         </div>

@@ -37,6 +37,7 @@ import CampaignManagePage from './pages/admin/CampaignManagePage';
 
 // Wallet page
 import WalletPage from './pages/wallet/WalletPage';
+import MomoReturnPage from './pages/wallet/MomoReturnPage';
 
 // Profile pages
 import ProfilePage from './pages/profile/ProfilePage';
@@ -122,6 +123,7 @@ export default function App() {
 
         {/* Wallet */}
         <Route path="/wallet" element={<PrivateRoute><WalletPage /></PrivateRoute>} />
+        <Route path="/wallet/momo-return" element={<PrivateRoute><MomoReturnPage /></PrivateRoute>} />
 
         {/* Profile */}
         <Route path="/profile" element={<PrivateRoute><ProfilePage /></PrivateRoute>} />
