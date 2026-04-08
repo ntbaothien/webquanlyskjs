@@ -7,13 +7,25 @@ const transactionSchema = new mongoose.Schema({
   type:        { type: String, enum: ['TOPUP', 'SPEND', 'REFUND'], required: true },
   amount:      { type: Number, required: true, min: 1 },
   status:      { type: String, enum: ['PENDING', 'COMPLETED', 'REJECTED'], default: 'PENDING' },
-  method:      { type: String, default: 'BANK_TRANSFER' },
+  method:      { type: String, enum: ['BANK_TRANSFER', 'MOMO'], default: 'BANK_TRANSFER' },
   note:        { type: String, default: '' },       // user note / booking ref
   adminNote:   { type: String, default: '' },
   processedBy: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
   processedAt: { type: Date },
   // For bank transfer reference
   transferCode: { type: String, default: '' },
+  // MoMo payment fields
+  momoOrderId: { type: String, default: '' },
+  momoTransId: { type: String, default: '' },
+  // Booking metadata (for MoMo ticket purchases)
+  bookingMeta: {
+    eventId:    { type: String },
+    eventTitle: { type: String },
+    zoneId:     { type: String },
+    zoneName:   { type: String },
+    quantity:   { type: Number },
+    pricePerSeat: { type: Number },
+  },
 }, { timestamps: true });
 
 transactionSchema.index({ userId: 1, createdAt: -1 });

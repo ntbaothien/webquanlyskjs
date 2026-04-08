@@ -29,6 +29,7 @@ import pollRoutes from './routes/pollRoutes.js';
 import notificationRoutes from './routes/notificationRoutes.js';
 import resellRoutes from './routes/resellRoutes.js';
 import groupBuyRoutes from './routes/groupBuyRoutes.js';
+import paymentRoutes from './routes/paymentRoutes.js';
 import ChatMessage from './models/ChatMessage.js';
 import { getBotReply } from './utils/aiBot.js';
 
@@ -79,6 +80,7 @@ app.use('/api/polls', pollRoutes);
 app.use('/api/notifications', notificationRoutes);
 app.use('/api/marketplace', resellRoutes);
 app.use('/api/group-buy', groupBuyRoutes);
+app.use('/api/payment', paymentRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => res.json({ status: 'ok', time: new Date() }));

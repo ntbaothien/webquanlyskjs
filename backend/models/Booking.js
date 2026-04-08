@@ -10,6 +10,7 @@ const bookingSchema = new mongoose.Schema({
   quantity: { type: Number, required: true, min: 1 },
   pricePerSeat: { type: Number, required: true },
   totalPrice: { type: Number, required: true },
+  momoOrderId: { type: String, default: '' },
   status: {
     type: String,
     enum: ['PENDING', 'CONFIRMED', 'CANCELLED', 'REFUNDED'],
