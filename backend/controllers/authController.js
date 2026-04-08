@@ -3,6 +3,7 @@ import jwt from 'jsonwebtoken';
 import User from '../models/User.js';
 import { sendResetPasswordEmail } from '../utils/mailer.js';
 import crypto from 'crypto';
+import { OAuth2Client } from 'google-auth-library';
 
 /**
  * POST /api/auth/register
@@ -91,6 +92,75 @@ export const login = async (req, res) => {
     });
   } catch (error) {
     res.status(500).json({ error: error.message });
+  }
+};
+
+/**
+ * POST /api/auth/google
+ */
+export const googleLogin = async (req, res) => {
+  try {
+    const { token } = req.body;
+    if (!token) {
+      return res.status(400).json({ error: 'Thiếu Google Token' });
+    }
+
+    const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+    const ticket = await client.verifyIdToken({
+      idToken: token,
+      audience: process.env.GOOGLE_CLIENT_ID,
+    });
+    
+    const payload = ticket.getPayload();
+    
+    // Check if user exists
+    let user = await User.findOne({ email: payload.email.toLowerCase() });
+    
+    if (!user) {
+      // Create new user
+      user = await User.create({
+        fullName: payload.name,
+        email: payload.email.toLowerCase(),
+        password: crypto.randomBytes(16).toString('hex'), // Random password for google user
+        role: 'ATTENDEE',
+        balance: 500000, // Demo config
+        googleId: payload.sub,
+        avatarUrl: payload.picture || ''
+      });
+    } else {
+      // Update googleId if missing
+      if (!user.googleId) {
+        user.googleId = payload.sub;
+        if (!user.avatarUrl && payload.picture) {
+          user.avatarUrl = payload.picture;
+        }
+        await user.save();
+      }
+    }
+    
+    if (user.isLocked) {
+      return res.status(403).json({ error: 'Tài khoản đã bị khóa. Liên hệ admin để được hỗ trợ.' });
+    }
+
+    const jwtToken = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
+      expiresIn: process.env.JWT_EXPIRES_IN || '7d'
+    });
+
+    res.json({
+      token: jwtToken,
+      user: {
+        id: user._id,
+        fullName: user.fullName,
+        email: user.email,
+        role: user.role,
+        balance: user.balance,
+        avatarUrl: user.avatarUrl
+      }
+    });
+
+  } catch (error) {
+    console.error('Google Auth Error:', error);
+    res.status(500).json({ error: 'Xác thực Google thất bại: ' + error.message });
   }
 };
 
